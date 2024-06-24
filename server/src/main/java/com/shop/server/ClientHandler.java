@@ -1,17 +1,22 @@
 package com.shop.server;
 
 import com.shop.common.RequestResponse;
+import com.shop.server.model.Picture;
+import com.shop.server.model.Product;
 import com.shop.server.model.User;
 import org.hibernate.Session;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.shop.common.RequestResponse.Title.*;
 
@@ -118,4 +123,36 @@ public class ClientHandler implements Runnable{
         }
         writeResponse(request);
     }
+
+    private void createProduct(RequestResponse request) {
+        System.out.println("\nStart create product");
+        Session session = server.getSessionFactory().openSession();
+
+        try {
+            session.beginTransaction();
+
+            List<Picture> pictures = new ArrayList<>();
+            System.out.println(request.getField(ArrayList.class, "images"));
+            for (byte[] img : (List<byte[]>) request.getField(ArrayList.class, "images")) {
+                Picture picture = new Picture(img);
+                pictures.add(picture);
+                session.persist(picture);
+            }
+
+            Product product = new Product(request.getField(String.class, "name"),
+                    request.getField(String.class, "description"), request.getField(BigDecimal.class, "price"),
+                    pictures, currentUser);
+
+            session.persist(product);
+            session.getTransaction().commit();
+//            System.out.println(currentUser.getCreatedProducts());
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+            ex.printStackTrace();
+        } finally {
+            session.close();
+        }
+
+    }
+
 }

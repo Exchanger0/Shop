@@ -12,5 +12,7 @@
         <property name="hbm2ddl.auto">validate</property>
 
         <mapping class="com.shop.server.model.User"/>
+        <mapping class="com.shop.server.model.Picture"/>
+        <mapping class="com.shop.server.model.Product"/>
     </session-factory>
 </hibernate-configuration>

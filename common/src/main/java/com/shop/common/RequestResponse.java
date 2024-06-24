@@ -10,6 +10,7 @@ public class RequestResponse implements Serializable{
         EXIT,
         REGISTRATION, SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR,
         LOG_IN, SUCCESSFUL_LOG_IN, LOG_IN_ERROR,
+        CREATE_PRODUCT,
     }
     private Title title;
     private final Map<String, Map<Class<?>, Object>> fields = new HashMap<>();

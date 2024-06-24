@@ -2,6 +2,9 @@ package com.shop.server.model;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "\"user\"")
 public class User {
@@ -15,6 +18,8 @@ public class User {
     private String password;
     @Column(name = "balance")
     private int balance;
+    @OneToMany(mappedBy = "user")
+    private List<Product> createdProducts = new ArrayList<>();
 
     public User() {
     }
@@ -23,5 +28,25 @@ public class User {
         this.username = username;
         this.password = password;
         this.balance = balance;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public int getBalance() {
+        return balance;
+    }
+
+    public List<Product> getCreatedProducts() {
+        return createdProducts;
+    }
+
+    public int getId() {
+        return id;
     }
 }

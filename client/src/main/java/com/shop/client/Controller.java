@@ -6,7 +6,9 @@ import javafx.application.Platform;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.math.BigDecimal;
 import java.net.Socket;
+import java.util.List;
 
 import static com.shop.common.RequestResponse.Title.*;
 
@@ -48,6 +50,21 @@ public class Controller {
             RequestResponse request = new RequestResponse(title);
             request.setField("username", username);
             request.setField("password", password);
+
+            writer.writeObject(request);
+            writer.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void createProduct(String name, String description, BigDecimal price, List<byte[]> images) {
+        try {
+            RequestResponse request = new RequestResponse(CREATE_PRODUCT);
+            request.setField("name", name);
+            request.setField("description", description);
+            request.setField("price", price);
+            request.setField("images", images);
 
             writer.writeObject(request);
             writer.flush();
