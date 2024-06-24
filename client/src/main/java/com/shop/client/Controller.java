@@ -1,7 +1,6 @@
 package com.shop.client;
 
 import com.shop.common.RequestResponse;
-import com.shop.common.UserType;
 import javafx.application.Platform;
 
 import java.io.IOException;
@@ -36,18 +35,17 @@ public class Controller {
         }
     }
 
-    public void registration(UserType userType, String username, String password) {
-        regLog(REGISTRATION, userType, username, password);
+    public void registration(String username, String password) {
+        regLog(REGISTRATION, username, password);
     }
 
-    public void logIn(UserType userType, String username, String password) {
-        regLog(LOG_IN, userType, username, password);
+    public void logIn(String username, String password) {
+        regLog(LOG_IN, username, password);
     }
 
-    private void regLog(RequestResponse.Title title, UserType userType, String username, String password) {
+    private void regLog(RequestResponse.Title title, String username, String password) {
         try {
             RequestResponse request = new RequestResponse(title);
-            request.setField("user_type", userType);
             request.setField("username", username);
             request.setField("password", password);
 

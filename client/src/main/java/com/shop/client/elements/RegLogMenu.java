@@ -1,7 +1,6 @@
 package com.shop.client.elements;
 
 import com.shop.client.Starter;
-import com.shop.common.UserType;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -15,7 +14,6 @@ import javafx.scene.text.Font;
 public abstract class RegLogMenu extends GridPane {
     protected Label errorLabel = new Label();
     protected Button sendButton = new Button("Send");
-    protected ToggleGroup toggleGroup = new ToggleGroup();
     protected TextField usernameField = new TextField();
     protected PasswordField passwordField = new PasswordField();
 
@@ -75,18 +73,10 @@ public abstract class RegLogMenu extends GridPane {
         Button backButton = new Button("Back");
         backButton.setOnAction(e -> starter.getScene().setRoot(parent));
 
-        RadioButton consumer = new RadioButton("Consumer");
-        consumer.setSelected(true);
-        consumer.setToggleGroup(toggleGroup);
-        consumer.setUserData(UserType.CONSUMER);
-        RadioButton producer = new RadioButton("Producer");
-        producer.setToggleGroup(toggleGroup);
-        producer.setUserData(UserType.PRODUCER);
-
-        HBox footer = new HBox(consumer, producer, sendButton, backButton);
+        HBox footer = new HBox(sendButton, backButton);
+        footer.setAlignment(Pos.CENTER_RIGHT);
         footer.setSpacing(10);
         GridPane.setColumnSpan(footer, 2);
-        GridPane.setHalignment(footer, HPos.CENTER);
 
         add(title, 0, 0);
         add(usernameLabel, 0, 1);

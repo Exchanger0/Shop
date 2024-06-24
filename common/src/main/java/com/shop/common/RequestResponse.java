@@ -9,10 +9,13 @@ public class RequestResponse implements Serializable{
     public enum Title {
         EXIT,
         REGISTRATION, SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR,
-        LOG_IN, SUCCESSFUL_LOG_IN, LOG_IN_ERROR
+        LOG_IN, SUCCESSFUL_LOG_IN, LOG_IN_ERROR,
     }
-    private final Title title;
+    private Title title;
     private final Map<String, Map<Class<?>, Object>> fields = new HashMap<>();
+
+    public RequestResponse() {
+    }
 
     public RequestResponse(Title title) {
         this.title = title;
@@ -28,6 +31,10 @@ public class RequestResponse implements Serializable{
 
     public Title getTitle() {
         return title;
+    }
+
+    public void setTitle(Title title) {
+        this.title = title;
     }
 
     public Set<String> getKeys() {

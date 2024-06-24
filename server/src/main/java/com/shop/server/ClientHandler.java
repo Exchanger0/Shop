@@ -1,7 +1,6 @@
 package com.shop.server;
 
 import com.shop.common.RequestResponse;
-import com.shop.common.UserType;
 import com.shop.server.model.User;
 import org.hibernate.Session;
 
@@ -76,33 +75,26 @@ public class ClientHandler implements Runnable{
     private void registration(RequestResponse request) {
         System.out.println("\nStart registration");
         Session session = server.getSessionFactory().openSession();
-        RequestResponse response;
         try {
             session.beginTransaction();
             User user = new User(request.getField(String.class, "username"),
-                    getHash(request.getField(String.class, "password")),
-                    request.getField(UserType.class, "user_type"), 0);
+                    getHash(request.getField(String.class, "password")), 0);
             session.persist(user);
             session.getTransaction().commit();
 
-            response = new RequestResponse(SUCCESSFUL_REGISTRATION);
-            response.setField("user_type", request.getField(UserType.class, "user_type"));
-            response.setField("username", request.getField(String.class, "username"));
-            response.setField("password", request.getField(String.class, "password"));
+            request.setTitle(SUCCESSFUL_REGISTRATION);
         }catch (Exception ex) {
             session.getTransaction().rollback();
-            response = new RequestResponse(REGISTRATION_ERROR);
-            ex.printStackTrace();
+            request.setTitle(REGISTRATION_ERROR);
         }finally {
             session.close();
         }
-        writeResponse(response);
+        writeResponse(request);
     }
 
     private void logIn(RequestResponse request) {
         System.out.println("\nStart logIn");
         Session session = server.getSessionFactory().openSession();
-        RequestResponse response = null;
         try {
             session.beginTransaction();
 
@@ -115,17 +107,15 @@ public class ClientHandler implements Runnable{
 
             if (user != null) {
                 currentUser = user;
-                response = new RequestResponse(SUCCESSFUL_LOG_IN);
-                response.setField("user_type", request.getField(UserType.class, "user_type"));
+                request.setTitle(SUCCESSFUL_LOG_IN);
             }
             session.getTransaction().commit();
         }catch (Exception ex) {
             session.getTransaction().rollback();
-            response = new RequestResponse(LOG_IN_ERROR);
-            ex.printStackTrace();
+            request.setTitle(LOG_IN_ERROR);
         }finally {
             session.close();
         }
-        writeResponse(response);
+        writeResponse(request);
     }
 }

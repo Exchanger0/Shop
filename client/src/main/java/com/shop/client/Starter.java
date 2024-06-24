@@ -1,12 +1,10 @@
 package com.shop.client;
 
-import com.shop.client.elements.StartMenu;
+import atlantafx.base.theme.*;
+import com.shop.client.elements.*;
 import com.shop.common.RequestResponse;
-import com.shop.common.UserType;
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import static com.shop.common.RequestResponse.Title.SUCCESSFUL_LOG_IN;
@@ -31,11 +29,12 @@ public class Starter extends Application {
     @Override
     public void start(Stage stage) throws Exception {
 
+        setUserAgentStylesheet(new NordLight().getUserAgentStylesheet());
         scene = new Scene(startMenu);
         stage.setScene(scene);
         stage.setTitle("Shop");
         stage.setHeight(600);
-        stage.setWidth(600);
+        stage.setWidth(610);
         stage.setOnCloseRequest(e -> {
             controller.exit();
         });
@@ -53,8 +52,7 @@ public class Starter extends Application {
 
     public void registration(RequestResponse response) {
         if (response.getTitle() == SUCCESSFUL_REGISTRATION) {
-            controller.logIn(response.getField(UserType.class, "user_type"),
-                    response.getField(String.class, "username"),
+            controller.logIn(response.getField(String.class, "username"),
                     response.getField(String.class, "password"));
         }else {
             startMenu.getRegMenu().setError("Registration error");
@@ -63,15 +61,9 @@ public class Starter extends Application {
 
     public void logIn(RequestResponse response) {
         if (response.getTitle() == SUCCESSFUL_LOG_IN) {
-            if (response.getField(UserType.class, "user_type").equals(UserType.CONSUMER)) {
-                scene.setRoot(new StackPane(new Label("Consumer")));
-            }else {
-                scene.setRoot(new StackPane(new Label("Producer")));
-            }
+            scene.setRoot(new ShopMenu(this));
         }else {
             startMenu.getLogMenu().setError("Invalid name and/or password");
         }
     }
-
-
 }

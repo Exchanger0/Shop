@@ -9,7 +9,7 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-//todo: сделать выход из программы
+//todo: убрать разделение user'а на consumer и producer, сделать показ созданных товаров во вкладке "созданные товары"
 public class Server {
 
     private SessionFactory sessionFactory;

@@ -1,6 +1,5 @@
 package com.shop.server.model;
 
-import com.shop.common.UserType;
 import jakarta.persistence.*;
 
 @Entity
@@ -14,19 +13,15 @@ public class User {
     private String username;
     @Column(name = "password")
     private String password;
-    @Enumerated(value = EnumType.STRING)
-    @Column(name = "type")
-    private UserType type;
     @Column(name = "balance")
     private int balance;
 
     public User() {
     }
 
-    public User(String username, String password, UserType type, int balance) {
+    public User(String username, String password, int balance) {
         this.username = username;
         this.password = password;
-        this.type = type;
         this.balance = balance;
     }
 }

@@ -12,6 +12,7 @@ repositories {
 
 dependencies {
     implementation(project(":common"))
+    implementation("io.github.mkpaz:atlantafx-base:2.0.1")
 }
 
 javafx {
