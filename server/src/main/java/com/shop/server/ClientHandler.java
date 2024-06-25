@@ -42,6 +42,7 @@ public class ClientHandler implements Runnable{
                 switch (request.getTitle()) {
                     case REGISTRATION -> registration(request);
                     case LOG_IN -> logIn(request);
+                    case CREATE_PRODUCT -> createProduct(request);
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -130,6 +131,7 @@ public class ClientHandler implements Runnable{
 
         try {
             session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
 
             List<Picture> pictures = new ArrayList<>();
             System.out.println(request.getField(ArrayList.class, "images"));
@@ -141,7 +143,8 @@ public class ClientHandler implements Runnable{
 
             Product product = new Product(request.getField(String.class, "name"),
                     request.getField(String.class, "description"), request.getField(BigDecimal.class, "price"),
-                    pictures, currentUser);
+                    pictures);
+            currentUser.getCreatedProducts().add(product);
 
             session.persist(product);
             session.getTransaction().commit();

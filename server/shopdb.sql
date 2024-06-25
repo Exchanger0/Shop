@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS product_picture;
+DROP TABLE IF EXISTS created_product;
 DROP TABLE IF EXISTS product;
 DROP TABLE IF EXISTS picture;
 DROP TABLE IF EXISTS "user";
@@ -18,7 +19,6 @@ CREATE TABLE product (
     name text NOT NULL,
     description text,
     price numeric(15, 2) NOT NULL,
-    user_id int REFERENCES "user"(user_id),
 
     PRIMARY KEY(product_id),
     CHECK(price >= 0)
@@ -34,4 +34,9 @@ CREATE TABLE picture (
 CREATE TABLE product_picture (
     pr_id int REFERENCES product(product_id),
     pi_id int REFERENCES picture(picture_id)
+);
+
+CREATE TABLE created_product (
+    user_id int REFERENCES "user"(user_id),
+    pr_id int REFERENCES product(product_id)
 );

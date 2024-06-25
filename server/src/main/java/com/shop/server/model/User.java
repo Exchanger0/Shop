@@ -18,7 +18,13 @@ public class User {
     private String password;
     @Column(name = "balance")
     private int balance;
-    @OneToMany(mappedBy = "user")
+    @OneToMany
+    @JoinTable(name = "created_product",
+            joinColumns = @JoinColumn(name = "user_id"),
+            foreignKey = @ForeignKey(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "pr_id"),
+            inverseForeignKey = @ForeignKey(name = "product_id")
+    )
     private List<Product> createdProducts = new ArrayList<>();
 
     public User() {

@@ -27,19 +27,15 @@ public class Product {
             inverseForeignKey = @ForeignKey(name = "picture_id")
     )
     private List<Picture> pictures = new ArrayList<>();
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
 
     public Product() {
     }
 
-    public Product(String name, String description, BigDecimal price, List<Picture> pictures, User user) {
+    public Product(String name, String description, BigDecimal price, List<Picture> pictures) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.pictures = pictures;
-        this.user = user;
     }
 
     public String getName() {
@@ -74,11 +70,4 @@ public class Product {
         this.pictures = pictures;
     }
 
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
 }
