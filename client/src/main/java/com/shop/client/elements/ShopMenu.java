@@ -12,6 +12,7 @@ import javafx.scene.layout.*;
 import java.util.Objects;
 
 public class ShopMenu extends BorderPane {
+    private CreatedGoodsPane createdGoodsPane;
 
     public ShopMenu(Starter starter) {
         GridPane buttonPane = new GridPane();
@@ -56,7 +57,15 @@ public class ShopMenu extends BorderPane {
         crGoods.setGraphic(getGraphic("/icons/box.png"));
         crGoods.setMaxWidth(Double.MAX_VALUE);
         crGoods.setToggleGroup(group);
-        crGoods.selectedProperty().addListener(buttonClickListener(new CreatedGoodsPane()));
+        crGoods.selectedProperty().addListener((obj, oldVal, newVal) -> {
+            if (newVal) {
+                if (createdGoodsPane == null) {
+                    starter.getController().loadCreatedProducts();
+                    createdGoodsPane = new CreatedGoodsPane();
+                }
+                setCenter(createdGoodsPane);
+            }
+        });
 
         ToggleButton profile = new ToggleButton();
         profile.setGraphic(getGraphic("/icons/account.png"));
@@ -74,15 +83,19 @@ public class ShopMenu extends BorderPane {
         setBottom(buttonPane);
     }
 
-    protected ImageView getGraphic(String path) {
+    private ImageView getGraphic(String path) {
         return new ImageView(new Image(Objects.requireNonNull(this.getClass().getResourceAsStream(path))));
     }
 
-    protected ChangeListener<Boolean> buttonClickListener(Node node) {
+    private ChangeListener<Boolean> buttonClickListener(Node node) {
         return (obj, oldVal, newVal) -> {
             if (newVal) {
                 setCenter(node);
             }
         };
+    }
+
+    public CreatedGoodsPane getCreatedGoodsPane() {
+        return createdGoodsPane;
     }
 }

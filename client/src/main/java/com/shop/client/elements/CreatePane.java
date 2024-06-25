@@ -56,6 +56,10 @@ public class CreatePane extends GridPane {
                 return;
             }
 
+            if (pathPane.getPaths().isEmpty()) {
+                showError("There must be at least one image");
+                return;
+            }
             List<byte[]> images = new ArrayList<>();
             for (String str : pathPane.getPaths()) {
                 try {

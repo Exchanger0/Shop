@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.shop.common.RequestResponse.Title.*;
 
@@ -43,6 +44,7 @@ public class ClientHandler implements Runnable{
                     case REGISTRATION -> registration(request);
                     case LOG_IN -> logIn(request);
                     case CREATE_PRODUCT -> createProduct(request);
+                    case GET_CREATED_PRODUCTS -> getCreatedProducts();
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -114,6 +116,7 @@ public class ClientHandler implements Runnable{
             if (user != null) {
                 currentUser = user;
                 request.setTitle(SUCCESSFUL_LOG_IN);
+                request.setField("balance", user.getBalance());
             }
             session.getTransaction().commit();
         }catch (Exception ex) {
@@ -148,14 +151,47 @@ public class ClientHandler implements Runnable{
 
             session.persist(product);
             session.getTransaction().commit();
-//            System.out.println(currentUser.getCreatedProducts());
+            writeResponse(request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
-            ex.printStackTrace();
         } finally {
             session.close();
         }
 
+    }
+
+    public void getCreatedProducts() {
+        System.out.println("\nStart get created products");
+        Session session = server.getSessionFactory().openSession();
+
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            List<RequestResponse> createdProducts = new ArrayList<>();
+
+            currentUser.getCreatedProducts().forEach(product -> {
+                RequestResponse info = new RequestResponse();
+                info.setField("name", product.getName());
+                info.setField("description", product.getDescription());
+                info.setField("price", product.getPrice());
+                info.setField("images", product.getPictures()
+                        .stream()
+                        .map(Picture::getImage)
+                        .collect(Collectors.toCollection(ArrayList::new)));
+                createdProducts.add(info);
+            });
+
+            RequestResponse response = new RequestResponse(GET_CREATED_PRODUCTS);
+            response.setField("created_products", createdProducts);
+            writeResponse(response);
+
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
     }
 
 }

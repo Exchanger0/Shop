@@ -15,6 +15,7 @@ public class Starter extends Application {
     private final StartMenu startMenu = new StartMenu(this);
     private Scene scene;
     private Controller controller;
+    private ShopMenu shopMenu;
 
     public static void main(String[] args) {
         launch(args);
@@ -27,7 +28,7 @@ public class Starter extends Application {
     }
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
 
         setUserAgentStylesheet(new NordLight().getUserAgentStylesheet());
         scene = new Scene(startMenu);
@@ -35,9 +36,7 @@ public class Starter extends Application {
         stage.setTitle("Shop");
         stage.setHeight(600);
         stage.setWidth(610);
-        stage.setOnCloseRequest(e -> {
-            controller.exit();
-        });
+        stage.setOnCloseRequest(e -> controller.exit());
         stage.centerOnScreen();
         stage.show();
     }
@@ -61,9 +60,14 @@ public class Starter extends Application {
 
     public void logIn(RequestResponse response) {
         if (response.getTitle() == SUCCESSFUL_LOG_IN) {
-            scene.setRoot(new ShopMenu(this));
+            shopMenu = new ShopMenu(this);
+            scene.setRoot(shopMenu);
         }else {
             startMenu.getLogMenu().setError("Invalid name and/or password");
         }
+    }
+
+    public ShopMenu getShopMenu() {
+        return shopMenu;
     }
 }
