@@ -59,10 +59,10 @@ public class ShopMenu extends BorderPane {
         crGoods.setToggleGroup(group);
         crGoods.selectedProperty().addListener((obj, oldVal, newVal) -> {
             if (newVal) {
-                if (createdGoodsPane == null) {
-                    starter.getController().loadCreatedProducts();
-                    createdGoodsPane = new CreatedGoodsPane();
+                if (createdGoodsPane == null){
+                    createdGoodsPane = new CreatedGoodsPane(starter);
                 }
+                starter.getController().loadCreatedProducts();
                 setCenter(createdGoodsPane);
             }
         });

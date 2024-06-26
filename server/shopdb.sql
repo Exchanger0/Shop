@@ -19,9 +19,11 @@ CREATE TABLE product (
     name text NOT NULL,
     description text,
     price numeric(15, 2) NOT NULL,
+    amount int NOT NULL,
 
     PRIMARY KEY(product_id),
-    CHECK(price >= 0)
+    CHECK(price >= 0),
+    CHECK(amount >= 0)
 );
 
 CREATE TABLE picture (

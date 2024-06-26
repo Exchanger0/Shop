@@ -10,7 +10,7 @@ public class RequestResponse implements Serializable{
         EXIT,
         REGISTRATION, SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR,
         LOG_IN, SUCCESSFUL_LOG_IN, LOG_IN_ERROR,
-        CREATE_PRODUCT,
+        CREATE_PRODUCT, REMOVE_PRODUCT,
         GET_CREATED_PRODUCTS
     }
     private Title title;

@@ -62,12 +62,13 @@ public class Controller {
         }
     }
 
-    public void createProduct(String name, String description, BigDecimal price, List<byte[]> images) {
+    public void createProduct(String name, String description, BigDecimal price, int amount, List<byte[]> images) {
         try {
             RequestResponse request = new RequestResponse(CREATE_PRODUCT);
             request.setField("name", name);
             request.setField("description", description);
             request.setField("price", price);
+            request.setField("amount", amount);
             request.setField("images", images);
 
             writer.writeObject(request);
@@ -88,24 +89,37 @@ public class Controller {
                 throw new RuntimeException(e);
             }
         }else {
-            Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().addProducts(products));
+            Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(products));
         }
     }
 
     private void loadCreatedProducts(RequestResponse response) {
         List<RequestResponse> createdProducts = response.getField(ArrayList.class, "created_products");
-        System.out.println(createdProducts);
-        List<Product> createdPr = new ArrayList<>();
+        List<Product> products = new ArrayList<>();
         for (RequestResponse info : createdProducts) {
-            Product product = new Product(info.getField(String.class, "name"),
+            Product product = new Product(info.getField(Integer.class, "id"),
+                    info.getField(String.class, "name"),
                     info.getField(String.class, "description"),
                     info.getField(BigDecimal.class, "price"),
+                    info.getField(Integer.class, "amount"),
                     info.getField(ArrayList.class, "images"));
-            System.out.println(product.getPictures());
-            createdPr.add(product);
+            products.add(product);
         }
-        currentUser.setCreatedProducts(createdPr);
-        Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().addProducts(createdPr));
+        currentUser.setCreatedProducts(products);
+        Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(currentUser.getCreatedProducts()));
+    }
+
+    public void removeProduct(int productId, int amount) {
+        try {
+            RequestResponse request = new RequestResponse(REMOVE_PRODUCT);
+            request.setField("id", productId);
+            request.setField("amount", amount);
+
+            writer.writeObject(request);
+            writer.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private class ServerListener implements Runnable {
@@ -129,16 +143,34 @@ public class Controller {
                         }
                         case LOG_IN_ERROR -> Platform.runLater(() -> starter.logIn(response));
                         case CREATE_PRODUCT -> {
-                            Product pr = new Product(
-                                    response.getField(String.class, "name"),
-                                    response.getField(String.class, "description"),
-                                    response.getField(BigDecimal.class, "price"),
-                                    response.getField(ArrayList.class, "images")
-                            );
-                            currentUser.getCreatedProducts().add(pr);
-                            Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().addProduct(pr));
+                            if (currentUser.getCreatedProducts() != null) {
+                                Product pr = new Product(
+                                        response.getField(Integer.class, "id"),
+                                        response.getField(String.class, "name"),
+                                        response.getField(String.class, "description"),
+                                        response.getField(BigDecimal.class, "price"),
+                                        response.getField(Integer.class, "amount"),
+                                        response.getField(ArrayList.class, "images")
+                                );
+                                currentUser.getCreatedProducts().add(pr);
+                            }
                         }
                         case GET_CREATED_PRODUCTS -> loadCreatedProducts(response);
+                        case REMOVE_PRODUCT -> {
+                            int am = response.getField(Integer.class, "amount");
+                            Product product = currentUser.getCreatedProducts()
+                                    .stream()
+                                    .filter(pr -> pr.getId() == response.getField(Integer.class, "id"))
+                                    .findFirst().orElse(null);
+                            if (product.getAmount() == am) {
+                                currentUser.getCreatedProducts().remove(product);
+                                Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().removeProduct(product.getId()));
+                            }else {
+                                product.setAmount(product.getAmount() - am);
+                                Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().updateAmount(product.getId(), product.getAmount()));
+                            }
+
+                        }
                         case EXIT -> {
                             writer.close();
                             reader.close();

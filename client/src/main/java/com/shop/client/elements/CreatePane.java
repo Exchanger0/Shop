@@ -18,9 +18,9 @@ import java.util.List;
 public class CreatePane extends GridPane {
     public CreatePane(Starter starter) {
         setAlignment(Pos.CENTER);
-        setPadding(new Insets(15));
+        setPadding(new Insets(5));
         setHgap(15);
-        setVgap(15);
+        setVgap(10);
         ColumnConstraints c = new ColumnConstraints();
         c.setPercentWidth(20);
         getColumnConstraints().add(c);
@@ -34,6 +34,9 @@ public class CreatePane extends GridPane {
 
         Label priceL = new Label("Price:");
         TextField price = new TextField();
+
+        Label amountL = new Label("Amount:");
+        TextField amount = new TextField();
 
         Label imgL = new Label("Images:");
         PathPane pathPane = new PathPane();
@@ -60,6 +63,17 @@ public class CreatePane extends GridPane {
                 showError("There must be at least one image");
                 return;
             }
+            int am;
+            try {
+                am = Integer.parseInt(amount.getText().trim());
+                if (am < 0) {
+                    showError("Amount must be greater than zero");
+                    return;
+                }
+            }catch (NumberFormatException ex) {
+                showError("Amount must be number");
+                return;
+            }
             List<byte[]> images = new ArrayList<>();
             for (String str : pathPane.getPaths()) {
                 try {
@@ -74,10 +88,11 @@ public class CreatePane extends GridPane {
                     return;
                 }
             }
-            starter.getController().createProduct(name.getText(), descr.getText(), pr, images);
+            starter.getController().createProduct(name.getText(), descr.getText(), pr, am, images);
             name.setText("");
             descr.setText("");
             price.setText("");
+            amount.setText("");
             pathPane.clear();
         });
 
@@ -87,9 +102,11 @@ public class CreatePane extends GridPane {
         add(descr, 1, 1);
         add(priceL, 0, 2);
         add(price, 1, 2);
-        add(imgL, 0, 3);
-        add(pathPane, 1, 3);
-        add(create, 0, 4);
+        add(amountL, 0, 3);
+        add(amount, 1, 3);
+        add(imgL, 0, 4);
+        add(pathPane, 1, 4);
+        add(create, 0, 5);
     }
 
     private void showError(String message) {

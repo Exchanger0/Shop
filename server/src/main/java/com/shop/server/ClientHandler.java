@@ -45,6 +45,7 @@ public class ClientHandler implements Runnable{
                     case LOG_IN -> logIn(request);
                     case CREATE_PRODUCT -> createProduct(request);
                     case GET_CREATED_PRODUCTS -> getCreatedProducts();
+                    case REMOVE_PRODUCT -> removeProduct(request);
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -146,11 +147,12 @@ public class ClientHandler implements Runnable{
 
             Product product = new Product(request.getField(String.class, "name"),
                     request.getField(String.class, "description"), request.getField(BigDecimal.class, "price"),
-                    pictures);
+                    request.getField(Integer.class, "amount"), pictures);
             currentUser.getCreatedProducts().add(product);
 
             session.persist(product);
             session.getTransaction().commit();
+            request.setField("id", product.getId());
             writeResponse(request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
@@ -160,7 +162,7 @@ public class ClientHandler implements Runnable{
 
     }
 
-    public void getCreatedProducts() {
+    private void getCreatedProducts() {
         System.out.println("\nStart get created products");
         Session session = server.getSessionFactory().openSession();
 
@@ -172,9 +174,11 @@ public class ClientHandler implements Runnable{
 
             currentUser.getCreatedProducts().forEach(product -> {
                 RequestResponse info = new RequestResponse();
+                info.setField("id", product.getId());
                 info.setField("name", product.getName());
                 info.setField("description", product.getDescription());
                 info.setField("price", product.getPrice());
+                info.setField("amount", product.getAmount());
                 info.setField("images", product.getPictures()
                         .stream()
                         .map(Picture::getImage)
@@ -187,6 +191,32 @@ public class ClientHandler implements Runnable{
             writeResponse(response);
 
             session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
+
+    private void removeProduct(RequestResponse request) {
+        System.out.println("\nStart remove product");
+        Session session = server.getSessionFactory().openSession();
+
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            Product product = session.createQuery("SELECT p FROM Product p WHERE p.id = :id", Product.class)
+                    .setParameter("id", request.getField(Integer.class, "id"))
+                    .getSingleResult();
+            if (request.getField(Integer.class, "amount") == product.getAmount()) {
+                currentUser.getCreatedProducts().remove(product);
+                session.remove(product);
+            }else {
+                product.setAmount(product.getAmount() - request.getField(Integer.class, "amount"));
+            }
+            session.getTransaction().commit();
+            writeResponse(request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {

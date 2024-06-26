@@ -19,6 +19,8 @@ public class Product {
     private String description;
     @Column(name = "price")
     private BigDecimal price;
+    @Column(name = "amount")
+    private int amount;
     @OneToMany
     @JoinTable(name = "product_picture",
             joinColumns = @JoinColumn(name = "pr_id"),
@@ -31,11 +33,16 @@ public class Product {
     public Product() {
     }
 
-    public Product(String name, String description, BigDecimal price, List<Picture> pictures) {
+    public Product(String name, String description, BigDecimal price, int amount, List<Picture> pictures) {
         this.name = name;
         this.description = description;
         this.price = price;
+        this.amount = amount;
         this.pictures = pictures;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public String getName() {
@@ -60,6 +67,14 @@ public class Product {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public int getAmount() {
+        return amount;
+    }
+
+    public void setAmount(int amount) {
+        this.amount = amount;
     }
 
     public List<Picture> getPictures() {
