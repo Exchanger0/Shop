@@ -36,12 +36,8 @@ public class User {
         this.balance = balance;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getPassword() {
-        return password;
+    public void setBalance(int balance) {
+        this.balance = balance;
     }
 
     public int getBalance() {

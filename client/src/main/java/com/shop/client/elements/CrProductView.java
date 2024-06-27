@@ -92,7 +92,9 @@ public class CrProductView extends HBox {
 
         Optional<ButtonType> res = remove.showAndWait();
         if (res.isPresent() && res.get() == ButtonType.YES) {
-            starter.getController().removeProduct(product.getId(), amount.getValue());
+            if (amount.getValue() != 0) {
+                starter.getController().removeProduct(product.getId(), amount.getValue());
+            }
         }
     }
 

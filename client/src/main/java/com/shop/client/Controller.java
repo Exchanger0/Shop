@@ -32,13 +32,17 @@ public class Controller {
         listener.start();
     }
 
-    public void exit() {
+    private void writeRequest(RequestResponse request) {
         try {
-            writer.writeObject(new RequestResponse(EXIT));
+            writer.writeObject(request);
             writer.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void exit() {
+        writeRequest(new RequestResponse(EXIT));
     }
 
     public void registration(String username, String password) {
@@ -50,44 +54,26 @@ public class Controller {
     }
 
     private void regLog(RequestResponse.Title title, String username, String password) {
-        try {
-            RequestResponse request = new RequestResponse(title);
-            request.setField("username", username);
-            request.setField("password", password);
-
-            writer.writeObject(request);
-            writer.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        RequestResponse request = new RequestResponse(title);
+        request.setField("username", username);
+        request.setField("password", password);
+        writeRequest(request);
     }
 
     public void createProduct(String name, String description, BigDecimal price, int amount, List<byte[]> images) {
-        try {
-            RequestResponse request = new RequestResponse(CREATE_PRODUCT);
-            request.setField("name", name);
-            request.setField("description", description);
-            request.setField("price", price);
-            request.setField("amount", amount);
-            request.setField("images", images);
-
-            writer.writeObject(request);
-            writer.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        RequestResponse request = new RequestResponse(CREATE_PRODUCT);
+        request.setField("name", name);
+        request.setField("description", description);
+        request.setField("price", price);
+        request.setField("amount", amount);
+        request.setField("images", images);
+        writeRequest(request);
     }
 
     public void loadCreatedProducts() {
         List<Product> products = currentUser.getCreatedProducts();
         if (products == null) {
-            try {
-                RequestResponse request = new RequestResponse(GET_CREATED_PRODUCTS);
-                writer.writeObject(request);
-                writer.flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            writeRequest(new RequestResponse(GET_CREATED_PRODUCTS));
         }else {
             Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(products));
         }
@@ -110,16 +96,20 @@ public class Controller {
     }
 
     public void removeProduct(int productId, int amount) {
-        try {
-            RequestResponse request = new RequestResponse(REMOVE_PRODUCT);
-            request.setField("id", productId);
-            request.setField("amount", amount);
+        RequestResponse request = new RequestResponse(REMOVE_PRODUCT);
+        request.setField("id", productId);
+        request.setField("amount", amount);
+        writeRequest(request);
+    }
 
-            writer.writeObject(request);
-            writer.flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    public void topUpBalance(int amount) {
+        RequestResponse request = new RequestResponse(TOP_UP_BALANCE);
+        request.setField("amount", amount);
+        writeRequest(request);
     }
 
     private class ServerListener implements Runnable {
@@ -137,7 +127,6 @@ public class Controller {
                         case SUCCESSFUL_LOG_IN -> {
                             currentUser = new User(
                                     response.getField(String.class, "username"),
-                                    response.getField(String.class, "password"),
                                     response.getField(Integer.class, "balance"));
                             Platform.runLater(() -> starter.logIn(response));
                         }
@@ -170,6 +159,11 @@ public class Controller {
                                 Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().updateAmount(product.getId(), product.getAmount()));
                             }
 
+                        }
+                        case TOP_UP_BALANCE -> {
+                            currentUser.setBalance(currentUser.getBalance() + response.getField(Integer.class, "amount"));
+                            Platform.runLater(() ->
+                                    starter.getShopMenu().getProfilePane().updateBalance(currentUser.getBalance()));
                         }
                         case EXIT -> {
                             writer.close();

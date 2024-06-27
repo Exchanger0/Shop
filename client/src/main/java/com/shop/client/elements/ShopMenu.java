@@ -13,6 +13,7 @@ import java.util.Objects;
 
 public class ShopMenu extends BorderPane {
     private CreatedGoodsPane createdGoodsPane;
+    private ProfilePane profilePane;
 
     public ShopMenu(Starter starter) {
         GridPane buttonPane = new GridPane();
@@ -71,7 +72,14 @@ public class ShopMenu extends BorderPane {
         profile.setGraphic(getGraphic("/icons/account.png"));
         profile.setMaxWidth(Double.MAX_VALUE);
         profile.setToggleGroup(group);
-        profile.selectedProperty().addListener(buttonClickListener(new ProfilePane()));
+        profile.selectedProperty().addListener((obj, oldVal, newVal) -> {
+            if (newVal) {
+                if (profilePane == null){
+                    profilePane = new ProfilePane(starter);
+                }
+                setCenter(profilePane);
+            }
+        });
 
         buttonPane.add(home, 0, 0);
         buttonPane.add(cart, 1, 0);
@@ -97,5 +105,9 @@ public class ShopMenu extends BorderPane {
 
     public CreatedGoodsPane getCreatedGoodsPane() {
         return createdGoodsPane;
+    }
+
+    public ProfilePane getProfilePane() {
+        return profilePane;
     }
 }

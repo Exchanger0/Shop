@@ -46,6 +46,7 @@ public class ClientHandler implements Runnable{
                     case CREATE_PRODUCT -> createProduct(request);
                     case GET_CREATED_PRODUCTS -> getCreatedProducts();
                     case REMOVE_PRODUCT -> removeProduct(request);
+                    case TOP_UP_BALANCE -> topUpBalance(request);
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -215,6 +216,24 @@ public class ClientHandler implements Runnable{
             }else {
                 product.setAmount(product.getAmount() - request.getField(Integer.class, "amount"));
             }
+            session.getTransaction().commit();
+            writeResponse(request);
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
+
+    private void topUpBalance(RequestResponse request) {
+        System.out.println("\nStart top up balance");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            currentUser.setBalance(currentUser.getBalance() + request.getField(Integer.class, "amount"));
+
             session.getTransaction().commit();
             writeResponse(request);
         } catch (Exception ex) {

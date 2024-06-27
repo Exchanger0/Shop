@@ -9,7 +9,7 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-//todo: сделать полный показ товара во вкладке "созданные товары", сделать показ профиля
+//todo: сделать показ профиля
 public class Server {
 
     private SessionFactory sessionFactory;

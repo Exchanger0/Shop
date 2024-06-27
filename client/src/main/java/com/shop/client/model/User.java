@@ -1,17 +1,14 @@
 package com.shop.client.model;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class User {
     private final String username;
-    private final String password;
-    private final int balance;
+    private int balance;
     private List<Product> createdProducts = null;
 
-    public User(String username, String password, int balance) {
+    public User(String username,  int balance) {
         this.username = username;
-        this.password = password;
         this.balance = balance;
     }
 
@@ -19,8 +16,8 @@ public class User {
         return username;
     }
 
-    public String getPassword() {
-        return password;
+    public void setBalance(int balance) {
+        this.balance = balance;
     }
 
     public int getBalance() {
