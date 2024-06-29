@@ -1,4 +1,4 @@
-package com.shop.client.elements;
+package com.shop.client.elements.views;
 
 import com.shop.client.Starter;
 import com.shop.client.model.Product;
@@ -19,9 +19,15 @@ public class CrProductView extends HBox {
     private final Starter starter;
     private final Product product;
     private final Label amount;
+    private ProductView productView;
     public CrProductView(Starter starter, Product product) {
         setSpacing(10);
-        setOnMousePressed(e -> starter.getScene().setRoot(new ProductView(starter, product)));
+        setOnMousePressed(e -> {
+            if (productView == null) {
+                productView = new ProductView(starter, product);
+            }
+            starter.getScene().setRoot(productView);
+        });
 
         this.starter = starter;
         this.product = product;
@@ -104,5 +110,6 @@ public class CrProductView extends HBox {
 
     public void updateAmount(int newAmount) {
         amount.setText("Amount: " + newAmount);
+        productView.updateAmount(newAmount);
     }
 }

@@ -47,6 +47,7 @@ public class ClientHandler implements Runnable{
                     case GET_CREATED_PRODUCTS -> getCreatedProducts();
                     case REMOVE_PRODUCT -> removeProduct(request);
                     case TOP_UP_BALANCE -> topUpBalance(request);
+                    case GET_PRODUCTS -> getProducts(request);
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -243,4 +244,43 @@ public class ClientHandler implements Runnable{
         }
     }
 
+    private void getProducts(RequestResponse request) {
+        System.out.println("\nStart get products");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+
+            List<Product> products = session.createQuery(
+                    "SELECT p FROM Product p JOIN FETCH p.pictures", Product.class)
+                    .setFirstResult(request.getField(Integer.class, "offset"))
+                    .setMaxResults(request.getField(Integer.class, "limit"))
+                    .getResultList();
+
+            List<RequestResponse> productInfo = new ArrayList<>();
+            for (Product pr : products) {
+                RequestResponse info = new RequestResponse();
+                info.setField("id", pr.getId());
+                info.setField("name", pr.getName());
+                info.setField("description", pr.getDescription());
+                info.setField("price", pr.getPrice());
+                info.setField("amount", pr.getAmount());
+                info.setField("images", pr.getPictures()
+                        .stream()
+                        .map(Picture::getImage)
+                        .collect(Collectors.toCollection(ArrayList::new)));
+                productInfo.add(info);
+            }
+
+            RequestResponse response = new RequestResponse(GET_PRODUCTS);
+            response.setField("offset", products.size());
+            response.setField("products", productInfo);
+            writeResponse(response);
+
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
 }

@@ -22,6 +22,9 @@ public class Controller {
     private final ObjectInputStream reader;
     private final Thread listener;
     private User currentUser;
+    private int offset = 0;
+    private final int LIMIT = 40;
+    private final List<RequestResponse> productCache = new ArrayList<>();
 
     public Controller(Starter starter) throws IOException {
         this.starter = starter;
@@ -112,6 +115,36 @@ public class Controller {
         writeRequest(request);
     }
 
+    public void loadNextProducts() {
+        if (offset+ LIMIT > productCache.size()) {
+            RequestResponse request = new RequestResponse(GET_PRODUCTS);
+            request.setField("limit", LIMIT);
+            request.setField("offset", offset);
+            writeRequest(request);
+        }else {
+            Platform.runLater(() -> {
+                    starter.getShopMenu().getProductPane().setProducts(productCache.subList(offset, offset+ LIMIT));
+                offset += LIMIT;
+            });
+        }
+    }
+
+    public void loadPreviousProducts() {
+        if (offset - LIMIT *2 >= 0) {
+            offset -= LIMIT * 2;
+            Platform.runLater(() -> {
+                starter.getShopMenu().getProductPane().setProducts(productCache.subList(offset, offset + LIMIT));
+                offset += LIMIT;
+            });
+        }else {
+            Platform.runLater(() -> starter.getShopMenu().getProductPane().resetButtons());
+        }
+    }
+
+    public void resetOffset() {
+        offset = 0;
+    }
+
     private class ServerListener implements Runnable {
 
         @Override
@@ -152,10 +185,13 @@ public class Controller {
                                     .filter(pr -> pr.getId() == response.getField(Integer.class, "id"))
                                     .findFirst().orElse(null);
                             if (product.getAmount() == am) {
-                                currentUser.getCreatedProducts().remove(product);
                                 Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().removeProduct(product.getId()));
+                                currentUser.getCreatedProducts().remove(product);
+                                productCache.removeIf(info -> info.getField(Integer.class, "id") == product.getId() &&
+                                        info.getField(String.class, "name").equals(product.getName()));
                             }else {
                                 product.setAmount(product.getAmount() - am);
+
                                 Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().updateAmount(product.getId(), product.getAmount()));
                             }
 
@@ -164,6 +200,17 @@ public class Controller {
                             currentUser.setBalance(currentUser.getBalance() + response.getField(Integer.class, "amount"));
                             Platform.runLater(() ->
                                     starter.getShopMenu().getProfilePane().updateBalance(currentUser.getBalance()));
+                        }
+                        case GET_PRODUCTS -> {
+                            ArrayList<RequestResponse> products = response.getField(ArrayList.class, "products");
+                            if (!products.isEmpty()) {
+                                Platform.runLater(() ->
+                                        starter.getShopMenu().getProductPane().setProducts(products));
+                                offset += LIMIT;
+                                productCache.addAll(products);
+                            }else {
+                                Platform.runLater(() -> starter.getShopMenu().getProductPane().resetButtons());
+                            }
                         }
                         case EXIT -> {
                             writer.close();

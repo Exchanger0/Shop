@@ -9,7 +9,6 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-//todo: сделать показ профиля
 public class Server {
 
     private SessionFactory sessionFactory;

@@ -1,4 +1,4 @@
-package com.shop.client.elements;
+package com.shop.client.elements.views;
 
 import com.shop.client.Starter;
 import com.shop.client.model.Product;
@@ -16,6 +16,8 @@ import java.io.ByteArrayInputStream;
 
 
 public class ProductView extends GridPane {
+    private final Label amount;
+    protected VBox contentInfo = new VBox();
     public ProductView(Starter starter, Product product) {
         setPadding(new Insets(10));
         RowConstraints r1 = new RowConstraints();
@@ -41,22 +43,25 @@ public class ProductView extends GridPane {
         header.setSpacing(5);
 
         ScrollPane info = new ScrollPane();
-        VBox vBox = new VBox();
-        vBox.setSpacing(10);
-        vBox.maxWidthProperty().bind(this.widthProperty().subtract(30));
-        info.setContent(vBox);
+        contentInfo.setSpacing(10);
+        contentInfo.maxWidthProperty().bind(this.widthProperty().subtract(30));
+        info.setContent(contentInfo);
 
         Label name = new Label(product.getName());
         name.setFont(Font.font(Font.getDefault().getName(), FontWeight.BOLD, 25));
         Label description = new Label(product.getDescription());
         description.setWrapText(true);
-        Label amount = new Label("Amount: " + product.getAmount());
+        amount = new Label("Amount: " + product.getAmount());
         amount.setFont(new Font(20));
         Label price = new Label(product.getPrice() + "$");
         price.setFont(new Font(20));
-        vBox.getChildren().addAll(name, description, amount, price);
+        contentInfo.getChildren().addAll(name, description, amount, price);
 
         add(header, 0 ,0);
         add(info, 0 ,1);
+    }
+
+    public void updateAmount(int newAmount) {
+        amount.setText("Amount: " + newAmount);
     }
 }

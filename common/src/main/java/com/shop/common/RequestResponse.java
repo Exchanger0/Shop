@@ -11,7 +11,7 @@ public class RequestResponse implements Serializable{
         REGISTRATION, SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR,
         LOG_IN, SUCCESSFUL_LOG_IN, LOG_IN_ERROR,
         CREATE_PRODUCT, REMOVE_PRODUCT,
-        GET_CREATED_PRODUCTS,
+        GET_CREATED_PRODUCTS, GET_PRODUCTS,
         TOP_UP_BALANCE
     }
     private Title title;

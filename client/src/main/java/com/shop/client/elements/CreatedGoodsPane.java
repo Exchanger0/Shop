@@ -1,6 +1,7 @@
 package com.shop.client.elements;
 
 import com.shop.client.Starter;
+import com.shop.client.elements.views.CrProductView;
 import com.shop.client.model.Product;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;

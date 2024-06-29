@@ -12,8 +12,10 @@ import javafx.scene.layout.*;
 import java.util.Objects;
 
 public class ShopMenu extends BorderPane {
+    private CreatePane createPane;
     private CreatedGoodsPane createdGoodsPane;
     private ProfilePane profilePane;
+    private ProductPane productPane;
 
     public ShopMenu(Starter starter) {
         GridPane buttonPane = new GridPane();
@@ -33,7 +35,14 @@ public class ShopMenu extends BorderPane {
         home.setGraphic(getGraphic("/icons/home.png"));
         home.setMaxWidth(Double.MAX_VALUE);
         home.setToggleGroup(group);
-        home.selectedProperty().addListener(buttonClickListener(new ProductPane()));
+        home.selectedProperty().addListener((obj, oldVal, newVal) -> {
+            if (newVal) {
+                productPane = new ProductPane(starter);
+                setCenter(productPane);
+                starter.getController().resetOffset();
+                starter.getController().loadNextProducts();
+            }
+        });
         home.setSelected(true);
 
         ToggleButton cart = new ToggleButton();
@@ -52,7 +61,14 @@ public class ShopMenu extends BorderPane {
         create.setGraphic(getGraphic("/icons/hammer.png"));
         create.setMaxWidth(Double.MAX_VALUE);
         create.setToggleGroup(group);
-        create.selectedProperty().addListener(buttonClickListener(new CreatePane(starter)));
+        create.selectedProperty().addListener((obj, oldVal, newVal) -> {
+            if (newVal) {
+                if (createPane == null){
+                    createPane = new CreatePane(starter);
+                }
+                setCenter(createPane);
+            }
+        });
 
         ToggleButton crGoods = new ToggleButton();
         crGoods.setGraphic(getGraphic("/icons/box.png"));
@@ -63,8 +79,8 @@ public class ShopMenu extends BorderPane {
                 if (createdGoodsPane == null){
                     createdGoodsPane = new CreatedGoodsPane(starter);
                 }
-                starter.getController().loadCreatedProducts();
                 setCenter(createdGoodsPane);
+                starter.getController().loadCreatedProducts();
             }
         });
 
@@ -109,5 +125,9 @@ public class ShopMenu extends BorderPane {
 
     public ProfilePane getProfilePane() {
         return profilePane;
+    }
+
+    public ProductPane getProductPane() {
+        return productPane;
     }
 }
