@@ -42,3 +42,8 @@ CREATE TABLE created_product (
     user_id int REFERENCES "user"(user_id),
     pr_id int REFERENCES product(product_id)
 );
+
+CREATE TABLE cart (
+    user_id int REFERENCES "user"(user_id),
+    pr_id int REFERENCES product(product_id)
+);

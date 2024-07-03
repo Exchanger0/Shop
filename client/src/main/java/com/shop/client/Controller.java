@@ -1,8 +1,8 @@
 package com.shop.client;
 
-import com.shop.client.model.Product;
-import com.shop.client.model.User;
+import com.shop.common.model.Product;
 import com.shop.common.RequestResponse;
+import com.shop.common.model.User;
 import javafx.application.Platform;
 
 import java.io.IOException;
@@ -24,7 +24,7 @@ public class Controller {
     private User currentUser;
     private int offset = 0;
     private final int LIMIT = 40;
-    private final List<RequestResponse> productCache = new ArrayList<>();
+    private final List<Product> productCache = new ArrayList<>();
 
     public Controller(Starter starter) throws IOException {
         this.starter = starter;
@@ -82,24 +82,8 @@ public class Controller {
         }
     }
 
-    private void loadCreatedProducts(RequestResponse response) {
-        List<RequestResponse> createdProducts = response.getField(ArrayList.class, "created_products");
-        List<Product> products = new ArrayList<>();
-        for (RequestResponse info : createdProducts) {
-            Product product = new Product(info.getField(Integer.class, "id"),
-                    info.getField(String.class, "name"),
-                    info.getField(String.class, "description"),
-                    info.getField(BigDecimal.class, "price"),
-                    info.getField(Integer.class, "amount"),
-                    info.getField(ArrayList.class, "images"));
-            products.add(product);
-        }
-        currentUser.setCreatedProducts(products);
-        Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(currentUser.getCreatedProducts()));
-    }
-
-    public void removeProduct(int productId, int amount) {
-        RequestResponse request = new RequestResponse(REMOVE_PRODUCT);
+    public void removeCreatedProduct(int productId, int amount) {
+        RequestResponse request = new RequestResponse(REMOVE_CREATED_PRODUCT);
         request.setField("id", productId);
         request.setField("amount", amount);
         writeRequest(request);
@@ -145,6 +129,27 @@ public class Controller {
         offset = 0;
     }
 
+    public void addToCart(int productId) {
+        RequestResponse request = new RequestResponse(ADD_TO_CART);
+        request.setField("id", productId);
+        writeRequest(request);
+    }
+
+    public void loadCart() {
+        List<Product> products = currentUser.getCart();
+        if (products == null) {
+            writeRequest(new RequestResponse(GET_CART));
+        }else {
+            Platform.runLater(() -> starter.getShopMenu().getCartPane().setProducts(products));
+        }
+    }
+
+    public void removeCartProduct(int productId) {
+        RequestResponse request = new RequestResponse(REMOVE_CART_PRODUCT);
+        request.setField("id", productId);
+        writeRequest(request);
+    }
+
     private class ServerListener implements Runnable {
 
         @Override
@@ -156,45 +161,39 @@ public class Controller {
                         break;
                     }
                     switch (response.getTitle()) {
-                        case SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR -> Platform.runLater(() -> starter.registration(response));
+                        case SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR ->
+                                Platform.runLater(() -> starter.registration(response));
                         case SUCCESSFUL_LOG_IN -> {
-                            currentUser = new User(
-                                    response.getField(String.class, "username"),
-                                    response.getField(Integer.class, "balance"));
+                            currentUser = response.getField(User.class, "user");
                             Platform.runLater(() -> starter.logIn(response));
                         }
                         case LOG_IN_ERROR -> Platform.runLater(() -> starter.logIn(response));
                         case CREATE_PRODUCT -> {
                             if (currentUser.getCreatedProducts() != null) {
-                                Product pr = new Product(
-                                        response.getField(Integer.class, "id"),
-                                        response.getField(String.class, "name"),
-                                        response.getField(String.class, "description"),
-                                        response.getField(BigDecimal.class, "price"),
-                                        response.getField(Integer.class, "amount"),
-                                        response.getField(ArrayList.class, "images")
-                                );
-                                currentUser.getCreatedProducts().add(pr);
+                                currentUser.getCreatedProducts().add(response.getField(Product.class, "product"));
                             }
                         }
-                        case GET_CREATED_PRODUCTS -> loadCreatedProducts(response);
-                        case REMOVE_PRODUCT -> {
+                        case GET_CREATED_PRODUCTS -> {
+                            ArrayList<Product> createdProducts = response.getField(ArrayList.class, "created_products");
+                            currentUser.setCreatedProducts(createdProducts);
+                            Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(currentUser.getCreatedProducts()));
+                        }
+                        case REMOVE_CREATED_PRODUCT -> {
                             int am = response.getField(Integer.class, "amount");
                             Product product = currentUser.getCreatedProducts()
                                     .stream()
                                     .filter(pr -> pr.getId() == response.getField(Integer.class, "id"))
                                     .findFirst().orElse(null);
-                            if (product.getAmount() == am) {
-                                Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().removeProduct(product.getId()));
-                                currentUser.getCreatedProducts().remove(product);
-                                productCache.removeIf(info -> info.getField(Integer.class, "id") == product.getId() &&
-                                        info.getField(String.class, "name").equals(product.getName()));
-                            }else {
-                                product.setAmount(product.getAmount() - am);
-
-                                Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().updateAmount(product.getId(), product.getAmount()));
+                            if (product != null) {
+                                if (product.getAmount() == am) {
+                                    Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().removeProduct(product.getId()));
+                                    currentUser.getCreatedProducts().remove(product);
+                                    productCache.remove(product);
+                                } else {
+                                    product.setAmount(product.getAmount() - am);
+                                    Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().updateAmount(product.getId(), product.getAmount()));
+                                }
                             }
-
                         }
                         case TOP_UP_BALANCE -> {
                             currentUser.setBalance(currentUser.getBalance() + response.getField(Integer.class, "amount"));
@@ -202,7 +201,7 @@ public class Controller {
                                     starter.getShopMenu().getProfilePane().updateBalance(currentUser.getBalance()));
                         }
                         case GET_PRODUCTS -> {
-                            ArrayList<RequestResponse> products = response.getField(ArrayList.class, "products");
+                            ArrayList<Product> products = response.getField(ArrayList.class, "products");
                             if (!products.isEmpty()) {
                                 Platform.runLater(() ->
                                         starter.getShopMenu().getProductPane().setProducts(products));
@@ -210,6 +209,27 @@ public class Controller {
                                 productCache.addAll(products);
                             }else {
                                 Platform.runLater(() -> starter.getShopMenu().getProductPane().resetButtons());
+                            }
+                        }
+                        case ADD_TO_CART -> {
+                            if (currentUser.getCart() != null) {
+                                currentUser.getCart().add(response.getField(Product.class, "product"));
+                            }
+                        }
+                        case GET_CART -> {
+                            ArrayList<Product> cart = response.getField(ArrayList.class, "cart");
+                            currentUser.setCart(cart);
+                            Platform.runLater(() -> starter.getShopMenu().getCartPane().setProducts(currentUser.getCart()));
+                        }
+                        case REMOVE_CART_PRODUCT -> {
+                            Product product = currentUser.getCart()
+                                    .stream()
+                                    .filter(pr -> pr.getId() == response.getField(Integer.class, "id"))
+                                    .findFirst().orElse(null);
+
+                            if (product != null) {
+                                Platform.runLater(() -> starter.getShopMenu().getCartPane().removeProduct(product.getId()));
+                                currentUser.getCart().remove(product);
                             }
                         }
                         case EXIT -> {

@@ -1,18 +1,19 @@
-package com.shop.client.model;
+package com.shop.common.model;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
-public class Product {
+public class Product implements Serializable {
     private final int id;
     private final String name;
     private final String description;
     private final BigDecimal price;
     private int amount;
-    private final List<byte[]> pictures;
+    private final ArrayList<byte[]> pictures;
 
-    public Product(int id, String name, String description, BigDecimal price, int amount, List<byte[]> pictures) {
+    public Product(int id, String name, String description, BigDecimal price, int amount, ArrayList<byte[]> pictures) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -41,7 +42,7 @@ public class Product {
         return amount;
     }
 
-    public List<byte[]> getPictures() {
+    public ArrayList<byte[]> getPictures() {
         return pictures;
     }
 

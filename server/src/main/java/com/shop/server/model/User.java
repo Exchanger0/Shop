@@ -26,6 +26,14 @@ public class User {
             inverseForeignKey = @ForeignKey(name = "product_id")
     )
     private List<Product> createdProducts = new ArrayList<>();
+    @OneToMany
+    @JoinTable(name = "cart",
+            joinColumns = @JoinColumn(name = "user_id"),
+            foreignKey = @ForeignKey(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "pr_id"),
+            inverseForeignKey = @ForeignKey(name = "product_id")
+    )
+    private List<Product> cart = new ArrayList<>();
 
     public User() {
     }
@@ -50,5 +58,13 @@ public class User {
 
     public int getId() {
         return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public List<Product> getCart() {
+        return cart;
     }
 }

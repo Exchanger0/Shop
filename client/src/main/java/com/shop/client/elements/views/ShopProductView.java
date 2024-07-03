@@ -1,7 +1,7 @@
 package com.shop.client.elements.views;
 
 import com.shop.client.Starter;
-import com.shop.common.RequestResponse;
+import com.shop.common.model.Product;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -11,24 +11,29 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 
 import java.io.ByteArrayInputStream;
-import java.math.BigDecimal;
-import java.util.ArrayList;
 
 public class ShopProductView extends VBox {
-    public ShopProductView(RequestResponse info) {
+    private BuyProductView buyProductView;
+    public ShopProductView(Starter starter, Product product) {
         setAlignment(Pos.TOP_LEFT);
+        setOnMousePressed(e -> {
+            if (buyProductView == null) {
+                buyProductView = new BuyProductView(starter, product);
+            }
+            starter.getScene().setRoot(buyProductView);
+        });
 
         ImageView image= new ImageView(new Image(
-                new ByteArrayInputStream((byte[]) info.getField(ArrayList.class, "images").getFirst()),
+                new ByteArrayInputStream(product.getPictures().getFirst()),
                 200, 100, true, true
         ));
 
-        Label name = new Label(info.getField(String.class, "name"));
+        Label name = new Label(product.getName());
         name.setFont(new Font(20));
         name.setMaxWidth(120);
         name.setTooltip(new Tooltip(name.getText()));
 
-        Label price = new Label(info.getField(BigDecimal.class, "price") + "$");
+        Label price = new Label(product.getPrice() + "$");
         price.setFont(new Font(15));
 
         getChildren().addAll(image, name, price);

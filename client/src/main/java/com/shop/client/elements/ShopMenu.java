@@ -12,10 +12,11 @@ import javafx.scene.layout.*;
 import java.util.Objects;
 
 public class ShopMenu extends BorderPane {
+    private ProductPane productPane;
+    private CartPane cartPane;
     private CreatePane createPane;
     private CreatedGoodsPane createdGoodsPane;
     private ProfilePane profilePane;
-    private ProductPane productPane;
 
     public ShopMenu(Starter starter) {
         GridPane buttonPane = new GridPane();
@@ -49,7 +50,15 @@ public class ShopMenu extends BorderPane {
         cart.setGraphic(getGraphic("/icons/cart.png"));
         cart.setMaxWidth(Double.MAX_VALUE);
         cart.setToggleGroup(group);
-        cart.selectedProperty().addListener(buttonClickListener(new CartMenu()));
+        cart.selectedProperty().addListener((obj, oldVal, newVal) -> {
+            if (newVal) {
+                if (cartPane == null){
+                    cartPane = new CartPane(starter);
+                }
+                setCenter(cartPane);
+                starter.getController().loadCart();
+            }
+        });
 
         ToggleButton orders = new ToggleButton();
         orders.setGraphic(getGraphic("/icons/arrow.png"));
@@ -129,5 +138,9 @@ public class ShopMenu extends BorderPane {
 
     public ProductPane getProductPane() {
         return productPane;
+    }
+
+    public CartPane getCartPane() {
+        return cartPane;
     }
 }

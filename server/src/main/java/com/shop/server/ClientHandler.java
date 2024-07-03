@@ -45,9 +45,12 @@ public class ClientHandler implements Runnable{
                     case LOG_IN -> logIn(request);
                     case CREATE_PRODUCT -> createProduct(request);
                     case GET_CREATED_PRODUCTS -> getCreatedProducts();
-                    case REMOVE_PRODUCT -> removeProduct(request);
+                    case REMOVE_CREATED_PRODUCT -> removeCreatedProduct(request);
                     case TOP_UP_BALANCE -> topUpBalance(request);
                     case GET_PRODUCTS -> getProducts(request);
+                    case ADD_TO_CART -> addToCart(request);
+                    case GET_CART -> getCart();
+                    case REMOVE_CART_PRODUCT -> removeCartProduct(request);
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -83,6 +86,19 @@ public class ClientHandler implements Runnable{
         }
     }
 
+    private com.shop.common.model.User toCommonUser(User user) {
+        return new com.shop.common.model.User(user.getUsername(), user.getBalance());
+    }
+
+    private com.shop.common.model.Product toCommonProduct(Product product) {
+        return new com.shop.common.model.Product(product.getId(), product.getName(), product.getDescription(),
+                product.getPrice(), product.getAmount(),
+                product.getPictures()
+                        .stream()
+                        .map(Picture::getImage)
+                        .collect(Collectors.toCollection(ArrayList::new)));
+    }
+
     private void registration(RequestResponse request) {
         System.out.println("\nStart registration");
         Session session = server.getSessionFactory().openSession();
@@ -106,6 +122,7 @@ public class ClientHandler implements Runnable{
     private void logIn(RequestResponse request) {
         System.out.println("\nStart logIn");
         Session session = server.getSessionFactory().openSession();
+        RequestResponse response = new RequestResponse();
         try {
             session.beginTransaction();
 
@@ -118,29 +135,28 @@ public class ClientHandler implements Runnable{
 
             if (user != null) {
                 currentUser = user;
-                request.setTitle(SUCCESSFUL_LOG_IN);
-                request.setField("balance", user.getBalance());
+                response.setTitle(SUCCESSFUL_LOG_IN);
+                response.setField("user", toCommonUser(user));
             }
             session.getTransaction().commit();
         }catch (Exception ex) {
             session.getTransaction().rollback();
-            request.setTitle(LOG_IN_ERROR);
+            response.setTitle(LOG_IN_ERROR);
         }finally {
             session.close();
         }
-        writeResponse(request);
+        writeResponse(response);
     }
 
     private void createProduct(RequestResponse request) {
         System.out.println("\nStart create product");
         Session session = server.getSessionFactory().openSession();
-
+        RequestResponse response = new RequestResponse(CREATE_PRODUCT);
         try {
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
 
             List<Picture> pictures = new ArrayList<>();
-            System.out.println(request.getField(ArrayList.class, "images"));
             for (byte[] img : (List<byte[]>) request.getField(ArrayList.class, "images")) {
                 Picture picture = new Picture(img);
                 pictures.add(picture);
@@ -154,8 +170,8 @@ public class ClientHandler implements Runnable{
 
             session.persist(product);
             session.getTransaction().commit();
-            request.setField("id", product.getId());
-            writeResponse(request);
+            response.setField("product", toCommonProduct(product));
+            writeResponse(response);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -172,21 +188,9 @@ public class ClientHandler implements Runnable{
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
 
-            List<RequestResponse> createdProducts = new ArrayList<>();
+            List<com.shop.common.model.Product> createdProducts = new ArrayList<>();
 
-            currentUser.getCreatedProducts().forEach(product -> {
-                RequestResponse info = new RequestResponse();
-                info.setField("id", product.getId());
-                info.setField("name", product.getName());
-                info.setField("description", product.getDescription());
-                info.setField("price", product.getPrice());
-                info.setField("amount", product.getAmount());
-                info.setField("images", product.getPictures()
-                        .stream()
-                        .map(Picture::getImage)
-                        .collect(Collectors.toCollection(ArrayList::new)));
-                createdProducts.add(info);
-            });
+            currentUser.getCreatedProducts().forEach(product -> createdProducts.add(toCommonProduct(product)));
 
             RequestResponse response = new RequestResponse(GET_CREATED_PRODUCTS);
             response.setField("created_products", createdProducts);
@@ -200,10 +204,9 @@ public class ClientHandler implements Runnable{
         }
     }
 
-    private void removeProduct(RequestResponse request) {
-        System.out.println("\nStart remove product");
+    private void removeCreatedProduct(RequestResponse request) {
+        System.out.println("\nStart remove created product");
         Session session = server.getSessionFactory().openSession();
-
         try {
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
@@ -256,24 +259,14 @@ public class ClientHandler implements Runnable{
                     .setMaxResults(request.getField(Integer.class, "limit"))
                     .getResultList();
 
-            List<RequestResponse> productInfo = new ArrayList<>();
+            List<com.shop.common.model.Product> commonProducts = new ArrayList<>();
             for (Product pr : products) {
-                RequestResponse info = new RequestResponse();
-                info.setField("id", pr.getId());
-                info.setField("name", pr.getName());
-                info.setField("description", pr.getDescription());
-                info.setField("price", pr.getPrice());
-                info.setField("amount", pr.getAmount());
-                info.setField("images", pr.getPictures()
-                        .stream()
-                        .map(Picture::getImage)
-                        .collect(Collectors.toCollection(ArrayList::new)));
-                productInfo.add(info);
+                commonProducts.add(toCommonProduct(pr));
             }
 
             RequestResponse response = new RequestResponse(GET_PRODUCTS);
             response.setField("offset", products.size());
-            response.setField("products", productInfo);
+            response.setField("products", commonProducts);
             writeResponse(response);
 
             session.getTransaction().commit();
@@ -283,4 +276,74 @@ public class ClientHandler implements Runnable{
             session.close();
         }
     }
+
+    public void addToCart(RequestResponse request) {
+        System.out.println("\nStart add to cart");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            Product product = session.createQuery("SELECT p FROM Product p WHERE p.id = :id", Product.class)
+                            .setParameter("id", request.getField(Integer.class, "id"))
+                            .getSingleResult();
+
+            currentUser.getCart().add(product);
+            session.getTransaction().commit();
+
+            RequestResponse response = new RequestResponse(ADD_TO_CART);
+            response.setField("product", toCommonProduct(product));
+            writeResponse(response);
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
+
+    private void getCart() {
+        System.out.println("\nStart get cart");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            List<com.shop.common.model.Product> cart = new ArrayList<>();
+
+            currentUser.getCart().forEach(product -> cart.add(toCommonProduct(product)));
+
+            RequestResponse response = new RequestResponse(GET_CART);
+            response.setField("cart", cart);
+            writeResponse(response);
+
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
+
+    private void removeCartProduct(RequestResponse request) {
+        System.out.println("\nStart remove cart product");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            Product product = session.createQuery("SELECT p FROM Product p WHERE p.id = :id", Product.class)
+                    .setParameter("id", request.getField(Integer.class, "id"))
+                    .getSingleResult();
+
+            currentUser.getCart().remove(product);
+
+            session.getTransaction().commit();
+            writeResponse(request);
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
+
 }

@@ -1,67 +1,117 @@
 package com.shop.client.elements.views;
 
 import com.shop.client.Starter;
-import com.shop.client.model.Product;
+import com.shop.common.model.Product;
 import javafx.geometry.Insets;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.geometry.Pos;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
+import javafx.util.StringConverter;
 
 import java.io.ByteArrayInputStream;
+import java.util.Optional;
 
 
-public class ProductView extends GridPane {
-    private final Label amount;
-    protected VBox contentInfo = new VBox();
+public abstract class ProductView extends HBox {
+    protected final Starter starter;
+    protected final Product product;
+    protected final Label amount;
+    protected FullProductView fullProductView;
+    protected Button remove = new Button("⨉");
     public ProductView(Starter starter, Product product) {
-        setPadding(new Insets(10));
-        RowConstraints r1 = new RowConstraints();
-        r1.setPercentHeight(50);
-        RowConstraints r2 = new RowConstraints();
-        r2.setPercentHeight(50);
-        getRowConstraints().addAll(r1, r2);
+        setSpacing(10);
+        setOnMousePressed(e -> {
+            if (fullProductView == null) {
+                fullProductView = new FullProductView(starter, product);
+            }
+            starter.getScene().setRoot(fullProductView);
+        });
 
-        Button back = new Button("<-");
-        back.setOnAction(e -> starter.getScene().setRoot(starter.getShopMenu()));
+        this.starter = starter;
+        this.product = product;
 
-        ScrollPane images = new ScrollPane();
-        images.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        HBox content = new HBox();
-        images.setContent(content);
-
-        for (byte[] img : product.getPictures()) {
-            content.getChildren().add(new ImageView(new Image(
-                    new ByteArrayInputStream(img), 300, 200, false, false
-            )));
-        }
-        VBox header = new VBox(back, images);
-        header.setSpacing(5);
-
-        ScrollPane info = new ScrollPane();
-        contentInfo.setSpacing(10);
-        contentInfo.maxWidthProperty().bind(this.widthProperty().subtract(30));
-        info.setContent(contentInfo);
+        ImageView imageView = new ImageView(new Image(
+                new ByteArrayInputStream(product.getPictures().getFirst()), 250, 160, true, true
+        ));
 
         Label name = new Label(product.getName());
-        name.setFont(Font.font(Font.getDefault().getName(), FontWeight.BOLD, 25));
+        name.setFont(new Font(20));
+
         Label description = new Label(product.getDescription());
         description.setWrapText(true);
-        amount = new Label("Amount: " + product.getAmount());
-        amount.setFont(new Font(20));
-        Label price = new Label(product.getPrice() + "$");
-        price.setFont(new Font(20));
-        contentInfo.getChildren().addAll(name, description, amount, price);
+        description.setMaxHeight(80);
 
-        add(header, 0 ,0);
-        add(info, 0 ,1);
+        Label price = new Label(product.getPrice().toString() + "$");
+        price.setFont(new Font(15));
+
+        amount = new Label("Amount: " + product.getAmount());
+
+        VBox content = new VBox(name, description, amount, price);
+        content.setSpacing(5);
+
+        remove.setOnAction(e -> showRemoveDialog());
+
+        getChildren().addAll(imageView, content, remove);
+    }
+
+    private void showRemoveDialog() {
+        Dialog<ButtonType> remove = new Dialog<>();
+        remove.setTitle("Remove product");
+
+        Label l = new Label("You want to remove a product: " + product.getName());
+        Label l2 = new Label("In quantity:");
+        Spinner<Integer> amount = new Spinner<>(0, product.getAmount(), 0);
+        amount.setEditable(true);
+        amount.getValueFactory().setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Integer integer) {
+                return integer == null ? "0" : String.valueOf(integer);
+            }
+
+            @Override
+            public Integer fromString(String s) {
+                int i;
+                try {
+                    i = Integer.parseInt(s);
+                    if (i > product.getAmount()) {
+                        i = 0;
+                    }
+                } catch (Exception ex) {
+                    i = 0;
+                }
+                return i;
+            }
+        });
+
+        HBox hBox = new HBox(l2, amount);
+        hBox.setSpacing(5);
+        hBox.setAlignment(Pos.CENTER);
+        VBox vBox = new VBox(l, hBox);
+        vBox.setPadding(new Insets(5));
+        vBox.setSpacing(10);
+
+        remove.getDialogPane().setContent(vBox);
+        remove.getDialogPane().getButtonTypes().addAll(ButtonType.YES, ButtonType.NO);
+
+        Optional<ButtonType> res = remove.showAndWait();
+        if (res.isPresent() && res.get() == ButtonType.YES) {
+            if (amount.getValue() != 0) {
+                removeProduct(product.getId(), amount.getValue());
+            }
+        }
+    }
+
+    protected abstract void removeProduct(int id, int amount);
+
+    public Product getProduct() {
+        return product;
     }
 
     public void updateAmount(int newAmount) {
         amount.setText("Amount: " + newAmount);
+        fullProductView.updateAmount(newAmount);
     }
 }
