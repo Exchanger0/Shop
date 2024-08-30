@@ -11,15 +11,17 @@ public class Product implements Serializable {
     private final String description;
     private final BigDecimal price;
     private int amount;
+    private final ProductType type;
     private final ArrayList<byte[]> pictures;
 
-    public Product(int id, String name, String description, BigDecimal price, int amount, ArrayList<byte[]> pictures) {
+    public Product(int id, String name, String description, BigDecimal price, int amount, ProductType type, ArrayList<byte[]> pictures) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
         this.amount = amount;
         this.pictures = pictures;
+        this.type = type;
     }
 
     public String getName() {
@@ -48,6 +50,10 @@ public class Product implements Serializable {
 
     public int getId() {
         return id;
+    }
+
+    public ProductType getType() {
+        return type;
     }
 
     @Override

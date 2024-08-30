@@ -9,6 +9,7 @@ public class User implements Serializable {
     private int balance;
     private ArrayList<Product> createdProducts = null;
     private ArrayList<Product> cart = null;
+    private ArrayList<Order> orders = null;
 
     public User(String username,  int balance) {
         this.username = username;
@@ -41,6 +42,14 @@ public class User implements Serializable {
 
     public ArrayList<Product> getCart() {
         return cart;
+    }
+
+    public ArrayList<Order> getOrders() {
+        return orders;
+    }
+
+    public void setOrders(ArrayList<Order> orders) {
+        this.orders = orders;
     }
 
     @Override

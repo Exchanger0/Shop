@@ -14,5 +14,6 @@
         <mapping class="com.shop.server.model.User"/>
         <mapping class="com.shop.server.model.Picture"/>
         <mapping class="com.shop.server.model.Product"/>
+        <mapping class="com.shop.server.model.Order"/>
     </session-factory>
 </hibernate-configuration>

@@ -32,12 +32,12 @@ public class ProductPane extends BorderPane {
         previous.setOnAction(e -> {
             previous.setDisable(true);
             next.setDisable(true);
-            starter.getController().loadPreviousProducts();
+            setProducts(starter.getController().getPreviousProducts());
         });
         next.setOnAction(e -> {
             previous.setDisable(true);
             next.setDisable(true);
-            starter.getController().loadNextProducts();
+            setProducts(starter.getController().getNextProducts());
             scrollPane.setVvalue(0);
         });
 
@@ -52,7 +52,6 @@ public class ProductPane extends BorderPane {
 
     public void setProducts(List<Product> products) {
         if (!products.isEmpty()) {
-            System.out.println(products);
             content.getChildren().clear();
             for (Product pr : products) {
                 content.getChildren().add(new ShopProductView(starter, pr));

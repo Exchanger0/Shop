@@ -1,8 +1,6 @@
 package com.shop.client.elements;
 
 import com.shop.client.Starter;
-import javafx.beans.value.ChangeListener;
-import javafx.scene.Node;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
@@ -14,6 +12,7 @@ import java.util.Objects;
 public class ShopMenu extends BorderPane {
     private ProductPane productPane;
     private CartPane cartPane;
+    private OrderPane orderPane;
     private CreatePane createPane;
     private CreatedGoodsPane createdGoodsPane;
     private ProfilePane profilePane;
@@ -38,10 +37,11 @@ public class ShopMenu extends BorderPane {
         home.setToggleGroup(group);
         home.selectedProperty().addListener((obj, oldVal, newVal) -> {
             if (newVal) {
-                productPane = new ProductPane(starter);
+                if (productPane == null) {
+                    productPane = new ProductPane(starter);
+                    productPane.setProducts(starter.getController().getNextProducts());
+                }
                 setCenter(productPane);
-                starter.getController().resetOffset();
-                starter.getController().loadNextProducts();
             }
         });
         home.setSelected(true);
@@ -56,7 +56,7 @@ public class ShopMenu extends BorderPane {
                     cartPane = new CartPane(starter);
                 }
                 setCenter(cartPane);
-                starter.getController().loadCart();
+                cartPane.setProducts(starter.getController().getCart());
             }
         });
 
@@ -64,7 +64,15 @@ public class ShopMenu extends BorderPane {
         orders.setGraphic(getGraphic("/icons/arrow.png"));
         orders.setMaxWidth(Double.MAX_VALUE);
         orders.setToggleGroup(group);
-        orders.selectedProperty().addListener(buttonClickListener(new OrderPane()));
+        orders.selectedProperty().addListener((obj, oldVal, newVal) -> {
+            if (newVal) {
+                if (orderPane == null){
+                    orderPane = new OrderPane(starter);
+                }
+                setCenter(orderPane);
+                orderPane.setOrders(starter.getController().getOrders());
+            }
+        });
 
         ToggleButton create = new ToggleButton();
         create.setGraphic(getGraphic("/icons/hammer.png"));
@@ -89,7 +97,7 @@ public class ShopMenu extends BorderPane {
                     createdGoodsPane = new CreatedGoodsPane(starter);
                 }
                 setCenter(createdGoodsPane);
-                starter.getController().loadCreatedProducts();
+                createdGoodsPane.setProducts(starter.getController().getCreatedProducts());
             }
         });
 
@@ -120,14 +128,6 @@ public class ShopMenu extends BorderPane {
         return new ImageView(new Image(Objects.requireNonNull(this.getClass().getResourceAsStream(path))));
     }
 
-    private ChangeListener<Boolean> buttonClickListener(Node node) {
-        return (obj, oldVal, newVal) -> {
-            if (newVal) {
-                setCenter(node);
-            }
-        };
-    }
-
     public CreatedGoodsPane getCreatedGoodsPane() {
         return createdGoodsPane;
     }
@@ -142,5 +142,9 @@ public class ShopMenu extends BorderPane {
 
     public CartPane getCartPane() {
         return cartPane;
+    }
+
+    public OrderPane getOrderPane() {
+        return orderPane;
     }
 }

@@ -34,6 +34,8 @@ public class User {
             inverseForeignKey = @ForeignKey(name = "product_id")
     )
     private List<Product> cart = new ArrayList<>();
+    @OneToMany(mappedBy = "user")
+    private List<Order> orders = new ArrayList<>();
 
     public User() {
     }
@@ -66,5 +68,9 @@ public class User {
 
     public List<Product> getCart() {
         return cart;
+    }
+
+    public List<Order> getOrders() {
+        return orders;
     }
 }

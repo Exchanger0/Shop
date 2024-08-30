@@ -1,6 +1,8 @@
 package com.shop.server;
 
 import com.shop.common.RequestResponse;
+import com.shop.common.model.ProductType;
+import com.shop.server.model.Order;
 import com.shop.server.model.Picture;
 import com.shop.server.model.Product;
 import com.shop.server.model.User;
@@ -15,8 +17,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.shop.common.RequestResponse.Title.*;
@@ -51,6 +52,8 @@ public class ClientHandler implements Runnable{
                     case ADD_TO_CART -> addToCart(request);
                     case GET_CART -> getCart();
                     case REMOVE_CART_PRODUCT -> removeCartProduct(request);
+                    case GET_ORDERS -> getOrders();
+                    case MAKE_ORDER -> makeOrder(request);
                     case EXIT -> {
                         writer.writeObject(request);
                         writer.flush();
@@ -92,11 +95,23 @@ public class ClientHandler implements Runnable{
 
     private com.shop.common.model.Product toCommonProduct(Product product) {
         return new com.shop.common.model.Product(product.getId(), product.getName(), product.getDescription(),
-                product.getPrice(), product.getAmount(),
+                product.getPrice(), product.getAmount(), product.getType(),
                 product.getPictures()
                         .stream()
                         .map(Picture::getImage)
                         .collect(Collectors.toCollection(ArrayList::new)));
+    }
+
+    private List<com.shop.common.model.Product> toCommonProducts(List<Product> products) {
+        return products.stream().map(this::toCommonProduct).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private com.shop.common.model.Order toCommonOrder(Order order) {
+        return new com.shop.common.model.Order(order.getId(), order.getTotalPrice(), toCommonProducts(order.getProducts()));
+    }
+
+    private List<com.shop.common.model.Order> toCommonOrders(List<Order> order) {
+        return order.stream().map(this::toCommonOrder).collect(Collectors.toCollection(ArrayList::new));
     }
 
     private void registration(RequestResponse request) {
@@ -165,7 +180,7 @@ public class ClientHandler implements Runnable{
 
             Product product = new Product(request.getField(String.class, "name"),
                     request.getField(String.class, "description"), request.getField(BigDecimal.class, "price"),
-                    request.getField(Integer.class, "amount"), pictures);
+                    request.getField(Integer.class, "amount"), ProductType.FOR_SALE, pictures);
             currentUser.getCreatedProducts().add(product);
 
             session.persist(product);
@@ -188,10 +203,7 @@ public class ClientHandler implements Runnable{
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
 
-            List<com.shop.common.model.Product> createdProducts = new ArrayList<>();
-
-            currentUser.getCreatedProducts().forEach(product -> createdProducts.add(toCommonProduct(product)));
-
+            List<com.shop.common.model.Product> createdProducts = toCommonProducts(currentUser.getCreatedProducts());
             RequestResponse response = new RequestResponse(GET_CREATED_PRODUCTS);
             response.setField("created_products", createdProducts);
             writeResponse(response);
@@ -254,16 +266,12 @@ public class ClientHandler implements Runnable{
             session.beginTransaction();
 
             List<Product> products = session.createQuery(
-                    "SELECT p FROM Product p JOIN FETCH p.pictures", Product.class)
+                    "SELECT p FROM Product p JOIN FETCH p.pictures WHERE p.type = ProductType.FOR_SALE", Product.class)
                     .setFirstResult(request.getField(Integer.class, "offset"))
                     .setMaxResults(request.getField(Integer.class, "limit"))
                     .getResultList();
 
-            List<com.shop.common.model.Product> commonProducts = new ArrayList<>();
-            for (Product pr : products) {
-                commonProducts.add(toCommonProduct(pr));
-            }
-
+            List<com.shop.common.model.Product> commonProducts = toCommonProducts(products);
             RequestResponse response = new RequestResponse(GET_PRODUCTS);
             response.setField("offset", products.size());
             response.setField("products", commonProducts);
@@ -288,11 +296,18 @@ public class ClientHandler implements Runnable{
                             .setParameter("id", request.getField(Integer.class, "id"))
                             .getSingleResult();
 
-            currentUser.getCart().add(product);
+            boolean success = false;
+            if (!currentUser.getCart().contains(product)) {
+                currentUser.getCart().add(product);
+                success = true;
+            }
             session.getTransaction().commit();
 
             RequestResponse response = new RequestResponse(ADD_TO_CART);
-            response.setField("product", toCommonProduct(product));
+            response.setField("success", success);
+            if (success) {
+                response.setField("product", toCommonProduct(product));
+            }
             writeResponse(response);
         } catch (Exception ex) {
             session.getTransaction().rollback();
@@ -308,10 +323,7 @@ public class ClientHandler implements Runnable{
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
 
-            List<com.shop.common.model.Product> cart = new ArrayList<>();
-
-            currentUser.getCart().forEach(product -> cart.add(toCommonProduct(product)));
-
+            List<com.shop.common.model.Product> cart = toCommonProducts(currentUser.getCart());
             RequestResponse response = new RequestResponse(GET_CART);
             response.setField("cart", cart);
             writeResponse(response);
@@ -341,6 +353,97 @@ public class ClientHandler implements Runnable{
             writeResponse(request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
+        } finally {
+            session.close();
+        }
+    }
+
+    private void getOrders() {
+        System.out.println("\nStart get orders");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            RequestResponse response = new RequestResponse(GET_ORDERS);
+            response.setField("orders", toCommonOrders(currentUser.getOrders()));
+            writeResponse(response);
+
+            session.getTransaction().commit();
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+            ex.printStackTrace();
+        } finally {
+            session.close();
+        }
+    }
+
+    private void makeOrder(RequestResponse request) {
+        System.out.println("\nStart make order");
+        Session session = server.getSessionFactory().openSession();
+        try {
+            session.beginTransaction();
+            currentUser = session.get(User.class, currentUser.getId());
+
+            Map<Integer, Integer> products = request.getField(HashMap.class, "products");
+
+            List<Product> saleProducts = session
+                    .createQuery(
+                    "SELECT pr FROM Product pr WHERE pr.id IN :list_of_id", Product.class)
+                    .setParameter("list_of_id", products.keySet())
+                    .getResultList();
+
+            boolean success = true;
+            List<String> errorMessages = new ArrayList<>();
+            for (Product p : saleProducts) {
+                int amount = p.getAmount() - products.get(p.getId());
+                if (amount < 0) {
+                    success = false;
+                    errorMessages.add(String.format("The quantity requested for product: %s (%d) is greater than the actual quantity (%d)"
+                            ,p.getName(), products.get(p.getId()), p.getAmount()));
+                } else {
+                    p.setAmount(amount);
+                }
+            }
+            BigDecimal totalPrice = request.getField(BigDecimal.class, "total_price");
+            if (currentUser.getBalance() < totalPrice.intValue()) {
+                success = false;
+                errorMessages.add("There's not enough money in the account");
+            } else {
+                currentUser.setBalance(currentUser.getBalance() - totalPrice.intValue());
+            }
+
+            RequestResponse response = new RequestResponse();
+            if (success) {
+                List<com.shop.common.model.Product> updatedProducts = new ArrayList<>();
+                List<Product> productsForOrder = new ArrayList<>();
+                for (Product p : saleProducts) {
+                    Product product = new Product(p.getName(), p.getDescription(), p.getPrice(), products.get(p.getId()),
+                            ProductType.FOR_ORDER, new ArrayList<>(p.getPictures()));
+                    updatedProducts.add(toCommonProduct(p));
+                    productsForOrder.add(product);
+                    session.persist(product);
+                }
+
+                Order order = new Order(currentUser, totalPrice, productsForOrder);
+                session.persist(order);
+
+                response.setTitle(MAKE_ORDER);
+                response.setField("order", toCommonOrder(order));
+                response.setField("updated_products", updatedProducts);
+                response.setField("balance", currentUser.getBalance());
+                session.getTransaction().commit();
+
+            } else {
+                response.setTitle(MAKE_ORDER_ERROR);
+                response.setField("errors", errorMessages);
+                session.getTransaction().rollback();
+            }
+
+            writeResponse(response);
+        } catch (Exception ex) {
+            session.getTransaction().rollback();
+            ex.printStackTrace();
         } finally {
             session.close();
         }

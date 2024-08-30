@@ -11,9 +11,10 @@ public class RequestResponse implements Serializable{
         REGISTRATION, SUCCESSFUL_REGISTRATION, REGISTRATION_ERROR,
         LOG_IN, SUCCESSFUL_LOG_IN, LOG_IN_ERROR,
         CREATE_PRODUCT, REMOVE_CREATED_PRODUCT,
-        GET_CREATED_PRODUCTS, GET_PRODUCTS, GET_CART,
+        GET_CREATED_PRODUCTS, GET_PRODUCTS, GET_CART, GET_ORDERS,
         TOP_UP_BALANCE,
-        ADD_TO_CART, REMOVE_CART_PRODUCT
+        ADD_TO_CART, REMOVE_CART_PRODUCT,
+        MAKE_ORDER, MAKE_ORDER_ERROR
     }
     private Title title;
     private final Map<String, Map<Class<?>, Object>> fields = new HashMap<>();
@@ -29,7 +30,7 @@ public class RequestResponse implements Serializable{
         fields.put(key, Map.of(value.getClass(), value));
     }
 
-    public  <T> T getField(Class<T> clazz, String key) {
+    public <T> T getField(Class<T> clazz, String key) {
         return clazz.cast(fields.get(key).get(clazz));
     }
 
