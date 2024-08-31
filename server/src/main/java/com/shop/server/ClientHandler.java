@@ -22,12 +22,20 @@ import java.util.stream.Collectors;
 
 import static com.shop.common.RequestResponse.Title.*;
 
+/*
+1. При создании продукта уведомить пользователей о его создании
+2. При добавлении товара в корзину
+3. При изменении баланса
+4. При оформлении заказа
+ */
+
 public class ClientHandler implements Runnable{
     private final Server server;
     private final Socket socket;
     private final ObjectInputStream reader;
     private final ObjectOutputStream writer;
     private User currentUser;
+    private Notifier notifier;
 
     public ClientHandler(Server server, Socket socket) throws IOException {
         this.server = server;
@@ -60,6 +68,7 @@ public class ClientHandler implements Runnable{
                         writer.close();
                         reader.close();
                         socket.close();
+                        notifier.removeClient(this);
                         Thread.currentThread().interrupt();
                     }
                 }
@@ -80,7 +89,7 @@ public class ClientHandler implements Runnable{
         }
     }
 
-    private void writeResponse(RequestResponse response) {
+    public void writeResponse(RequestResponse response) {
         try {
             writer.writeObject(response);
             writer.flush();
@@ -152,6 +161,7 @@ public class ClientHandler implements Runnable{
                 currentUser = user;
                 response.setTitle(SUCCESSFUL_LOG_IN);
                 response.setField("user", toCommonUser(user));
+                notifier = server.registerClientHandler(user, this);
             }
             session.getTransaction().commit();
         }catch (Exception ex) {
@@ -187,6 +197,7 @@ public class ClientHandler implements Runnable{
             session.getTransaction().commit();
             response.setField("product", toCommonProduct(product));
             writeResponse(response);
+            notifier.notifyClients(this, response);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -234,6 +245,7 @@ public class ClientHandler implements Runnable{
             }
             session.getTransaction().commit();
             writeResponse(request);
+            notifier.notifyClients(this, request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -252,6 +264,7 @@ public class ClientHandler implements Runnable{
 
             session.getTransaction().commit();
             writeResponse(request);
+            notifier.notifyClients(this, request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -285,9 +298,11 @@ public class ClientHandler implements Runnable{
         }
     }
 
-    public void addToCart(RequestResponse request) {
+    private void addToCart(RequestResponse request) {
         System.out.println("\nStart add to cart");
         Session session = server.getSessionFactory().openSession();
+        RequestResponse response = new RequestResponse(ADD_TO_CART);
+        response.setField("success", false);
         try {
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
@@ -296,19 +311,14 @@ public class ClientHandler implements Runnable{
                             .setParameter("id", request.getField(Integer.class, "id"))
                             .getSingleResult();
 
-            boolean success = false;
             if (!currentUser.getCart().contains(product)) {
                 currentUser.getCart().add(product);
-                success = true;
-            }
-            session.getTransaction().commit();
-
-            RequestResponse response = new RequestResponse(ADD_TO_CART);
-            response.setField("success", success);
-            if (success) {
+                response.setField("success", true);
                 response.setField("product", toCommonProduct(product));
             }
+            session.getTransaction().commit();
             writeResponse(response);
+            notifier.notifyClients(this, response);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -351,6 +361,7 @@ public class ClientHandler implements Runnable{
 
             session.getTransaction().commit();
             writeResponse(request);
+            notifier.notifyClients(this, request);
         } catch (Exception ex) {
             session.getTransaction().rollback();
         } finally {
@@ -385,6 +396,8 @@ public class ClientHandler implements Runnable{
             session.beginTransaction();
             currentUser = session.get(User.class, currentUser.getId());
 
+            //продукты которые пользователь хочет включить в заказ
+            //key: product id, value: amount
             Map<Integer, Integer> products = request.getField(HashMap.class, "products");
 
             List<Product> saleProducts = session
@@ -396,6 +409,7 @@ public class ClientHandler implements Runnable{
             boolean success = true;
             List<String> errorMessages = new ArrayList<>();
             for (Product p : saleProducts) {
+                //сколько продукта останется в случае его покупки
                 int amount = p.getAmount() - products.get(p.getId());
                 if (amount < 0) {
                     success = false;
@@ -405,6 +419,7 @@ public class ClientHandler implements Runnable{
                     p.setAmount(amount);
                 }
             }
+
             BigDecimal totalPrice = request.getField(BigDecimal.class, "total_price");
             if (currentUser.getBalance() < totalPrice.intValue()) {
                 success = false;
@@ -418,6 +433,7 @@ public class ClientHandler implements Runnable{
                 List<com.shop.common.model.Product> updatedProducts = new ArrayList<>();
                 List<Product> productsForOrder = new ArrayList<>();
                 for (Product p : saleProducts) {
+                    //продукт для заказа с количеством указанным пользователем
                     Product product = new Product(p.getName(), p.getDescription(), p.getPrice(), products.get(p.getId()),
                             ProductType.FOR_ORDER, new ArrayList<>(p.getPictures()));
                     updatedProducts.add(toCommonProduct(p));
@@ -441,6 +457,9 @@ public class ClientHandler implements Runnable{
             }
 
             writeResponse(response);
+            if (response.getTitle() == MAKE_ORDER) {
+                notifier.notifyClients(this, response);
+            }
         } catch (Exception ex) {
             session.getTransaction().rollback();
             ex.printStackTrace();

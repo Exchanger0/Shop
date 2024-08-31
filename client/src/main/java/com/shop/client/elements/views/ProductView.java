@@ -112,6 +112,8 @@ public abstract class ProductView extends HBox {
 
     public void updateAmount(int newAmount) {
         amount.setText("Amount: " + newAmount);
-        fullProductView.updateAmount(newAmount);
+        if (fullProductView != null) {
+            fullProductView.updateAmount(newAmount);
+        }
     }
 }
