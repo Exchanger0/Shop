@@ -6,16 +6,16 @@ import com.shop.common.model.Product;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.*;
 
 import java.util.List;
 
 public class ProductPane extends BorderPane {
     private final FlowPane content = new FlowPane();
+    private final ScrollPane scrollContent;
+    private final StackPane loadPane = new StackPane();
     private final Button previous = new Button("Previous");
     private final Button next = new Button("Next");
     private final Starter starter;
@@ -25,20 +25,22 @@ public class ProductPane extends BorderPane {
         content.setHgap(5);
         content.setVgap(5);
 
-        ScrollPane scrollPane = new ScrollPane(content);
-        scrollPane.viewportBoundsProperty().addListener((bounds, oldBounds, newBounds) ->
+        scrollContent = new ScrollPane(content);
+        scrollContent.viewportBoundsProperty().addListener((bounds, oldBounds, newBounds) ->
                 content.setPrefWidth(newBounds.getWidth()));
 
         previous.setOnAction(e -> {
             previous.setDisable(true);
             next.setDisable(true);
-            setProducts(starter.getController().getPreviousProducts());
+            waitLoad();
+            starter.getController().getPreviousProducts();
         });
         next.setOnAction(e -> {
             previous.setDisable(true);
             next.setDisable(true);
-            setProducts(starter.getController().getNextProducts());
-            scrollPane.setVvalue(0);
+            waitLoad();
+            starter.getController().getNextProducts();
+            scrollContent.setVvalue(0);
         });
 
         HBox buttonBar = new HBox(previous, next);
@@ -46,8 +48,16 @@ public class ProductPane extends BorderPane {
         buttonBar.setPadding(new Insets(10));
         buttonBar.setAlignment(Pos.CENTER);
 
-        setCenter(scrollPane);
+        setCenter(scrollContent);
         setBottom(buttonBar);
+    }
+
+    public void waitLoad() {
+        if (loadPane.getChildren().isEmpty()) {
+            ProgressIndicator indicator = new ProgressIndicator();
+            loadPane.getChildren().add(indicator);
+        }
+        setCenter(loadPane);
     }
 
     public void setProducts(List<Product> products) {
@@ -60,6 +70,7 @@ public class ProductPane extends BorderPane {
             pane.setMinHeight(60);
             pane.setMinWidth(10);
             content.getChildren().add(pane);
+            setCenter(scrollContent);
         }
         resetButtons();
     }

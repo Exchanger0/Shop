@@ -39,7 +39,8 @@ public class ShopMenu extends BorderPane {
             if (newVal) {
                 if (productPane == null) {
                     productPane = new ProductPane(starter);
-                    productPane.setProducts(starter.getController().getNextProducts());
+                    productPane.waitLoad();
+                    starter.getController().getNextProducts();
                 }
                 setCenter(productPane);
             }
@@ -56,7 +57,8 @@ public class ShopMenu extends BorderPane {
                     cartPane = new CartPane(starter);
                 }
                 setCenter(cartPane);
-                cartPane.setProducts(starter.getController().getCart());
+                cartPane.waitLoad();
+                starter.getController().loadCart();
             }
         });
 
@@ -70,7 +72,8 @@ public class ShopMenu extends BorderPane {
                     orderPane = new OrderPane(starter);
                 }
                 setCenter(orderPane);
-                orderPane.setOrders(starter.getController().getOrders());
+                orderPane.waitLoad();
+                starter.getController().loadOrders();
             }
         });
 
@@ -97,7 +100,8 @@ public class ShopMenu extends BorderPane {
                     createdGoodsPane = new CreatedGoodsPane(starter);
                 }
                 setCenter(createdGoodsPane);
-                createdGoodsPane.setProducts(starter.getController().getCreatedProducts());
+                createdGoodsPane.waitLoad();
+                starter.getController().loadCreatedProducts();
             }
         });
 

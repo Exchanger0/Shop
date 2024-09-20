@@ -8,6 +8,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.text.Font;
 import javafx.util.StringConverter;
 
 import java.math.BigDecimal;
@@ -19,8 +20,18 @@ import java.util.Optional;
 public class OrderPane extends BorderPane {
     private final Starter starter;
     private final VBox orders = new VBox();
+    private final ScrollPane scrollContent = new ScrollPane();
+    private final StackPane loadPane = new StackPane();
+
     public OrderPane(Starter starter) {
         this.starter = starter;
+
+        orders.setAlignment(Pos.CENTER);
+        orders.setFillWidth(true);
+
+        scrollContent.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollContent.setContent(orders);
+
         Button makeOrder = new Button("Make order");
         BorderPane.setMargin(makeOrder, new Insets(10));
         makeOrder.setOnAction(e -> {
@@ -46,6 +57,7 @@ public class OrderPane extends BorderPane {
             scrollPane.setContent(gridPane);
 
             int row = 0;
+            starter.getController().loadCart();
             for (Product pr : starter.getController().getCart()) {
                 Spinner<Integer> amount = new Spinner<>(0, pr.getAmount(), 0);
                 amount.setEditable(true);
@@ -93,17 +105,36 @@ public class OrderPane extends BorderPane {
             }
         });
         setTop(makeOrder);
-        setCenter(orders);
+        setCenter(scrollContent);
+    }
+
+    public void waitLoad() {
+        if (loadPane.getChildren().isEmpty()) {
+            ProgressIndicator indicator = new ProgressIndicator();
+            loadPane.getChildren().add(indicator);
+        }
+        setCenter(loadPane);
     }
 
     public void setOrders(List<Order> orders) {
         this.orders.getChildren().clear();
         for (Order o : orders) {
-            this.orders.getChildren().add(new OrderView(starter, o));
+            OrderView ov = new OrderView(starter, o);
+            ov.prefWidthProperty().bind(widthProperty());
+            this.orders.getChildren().add(ov);
         }
+        if (orders.isEmpty()) {
+            Label emptyLabel = new Label("Empty");
+            emptyLabel.setPadding(new Insets(20));
+            emptyLabel.setFont(new Font(30));
+            this.orders.getChildren().add(emptyLabel);
+        }
+        setCenter(scrollContent);
     }
 
     public void addOrder(Order order) {
-        orders.getChildren().add(new OrderView(starter, order));
+        OrderView ov = new OrderView(starter, order);
+        ov.prefWidthProperty().bind(widthProperty());
+        this.orders.getChildren().add(ov);
     }
 }

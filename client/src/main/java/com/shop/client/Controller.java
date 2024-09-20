@@ -14,8 +14,6 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
 
 import static com.shop.common.RequestResponse.Title.*;
 
@@ -25,7 +23,6 @@ public class Controller {
     private final ObjectOutputStream writer;
     private final ObjectInputStream reader;
     private final Thread listener;
-    private final CyclicBarrier wait = new CyclicBarrier(2);
     private User currentUser;
     private int offset = 0;
     private final int LIMIT = 40;
@@ -78,17 +75,12 @@ public class Controller {
         writeRequest(request);
     }
 
-    public List<Product> getCreatedProducts() {
+    public void loadCreatedProducts() {
         if (currentUser.getCreatedProducts() == null) {
             writeRequest(new RequestResponse(GET_CREATED_PRODUCTS));
-            try {
-                wait.await();
-            } catch (InterruptedException | BrokenBarrierException e) {
-                throw new RuntimeException(e);
-            }
+        } else {
+            Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(currentUser.getCreatedProducts()));
         }
-
-        return currentUser.getCreatedProducts();
     }
 
     public void removeCreatedProduct(int productId, int amount) {
@@ -108,26 +100,18 @@ public class Controller {
         writeRequest(request);
     }
 
-    public List<Product> getNextProducts() {
+    public void getNextProducts() {
         RequestResponse request = new RequestResponse(GET_PRODUCTS);
         request.setField("limit", LIMIT);
         request.setField("offset", offset);
         writeRequest(request);
-        try {
-            wait.await();
-        } catch (InterruptedException | BrokenBarrierException e) {
-            throw new RuntimeException(e);
-        }
-        return products;
     }
 
-    public List<Product> getPreviousProducts() {
-        int preoffset = offset - LIMIT*2;
-        if (preoffset >= 0) {
-            offset = preoffset;
-            return getNextProducts();
-        } else {
-            return products;
+    public void getPreviousProducts() {
+        int preOffset = offset - LIMIT*2;
+        if (preOffset >= 0) {
+            offset = preOffset;
+            getNextProducts();
         }
     }
 
@@ -137,15 +121,15 @@ public class Controller {
         writeRequest(request);
     }
 
-    public List<Product> getCart() {
+    public void loadCart() {
         if (currentUser.getCart() == null) {
             writeRequest(new RequestResponse(GET_CART));
-            try {
-                wait.await();
-            } catch (InterruptedException | BrokenBarrierException e) {
-                throw new RuntimeException(e);
-            }
+        } else {
+            Platform.runLater(() -> starter.getShopMenu().getCartPane().setProducts(currentUser.getCart()));
         }
+    }
+
+    public List<Product> getCart() {
         return currentUser.getCart();
     }
 
@@ -155,16 +139,12 @@ public class Controller {
         writeRequest(request);
     }
 
-    public List<Order> getOrders() {
+    public void loadOrders() {
         if (currentUser.getOrders() == null) {
             writeRequest(new RequestResponse(GET_ORDERS));
-            try {
-                wait.await();
-            } catch (InterruptedException | BrokenBarrierException e) {
-                throw new RuntimeException(e);
-            }
+        } else {
+            Platform.runLater(() -> starter.getShopMenu().getOrderPane().setOrders(currentUser.getOrders()));
         }
-        return currentUser.getOrders();
     }
 
     public void makeOrder(Map<Integer, Integer> products, BigDecimal totalPrice) {
@@ -200,7 +180,7 @@ public class Controller {
                         case GET_CREATED_PRODUCTS -> {
                             ArrayList<Product> createdProducts = response.getField(ArrayList.class, "created_products");
                             currentUser.setCreatedProducts(createdProducts);
-                            wait.await();
+                            Platform.runLater(() -> starter.getShopMenu().getCreatedGoodsPane().setProducts(createdProducts));
                         }
                         case REMOVE_CREATED_PRODUCT -> {
                             int am = response.getField(Integer.class, "amount");
@@ -225,13 +205,11 @@ public class Controller {
                         }
                         case GET_PRODUCTS -> {
                             List<Product> prs = response.getField(ArrayList.class, "products");
-                            System.out.println(prs);
                             if (!prs.equals(products)) {
-                                System.out.println(true);
                                 offset += LIMIT;
                                 products = prs;
                             }
-                            wait.await();
+                            Platform.runLater(() -> starter.getShopMenu().getProductPane().setProducts(products));
                         }
                         case ADD_TO_CART -> {
                             boolean success = response.getField(Boolean.class, "success");
@@ -242,7 +220,7 @@ public class Controller {
                         case GET_CART -> {
                             ArrayList<Product> cart = response.getField(ArrayList.class, "cart");
                             currentUser.setCart(cart);
-                            wait.await();
+                            Platform.runLater(() -> starter.getShopMenu().getCartPane().setProducts(cart));
                         }
                         case REMOVE_CART_PRODUCT -> {
                             Product product = currentUser.getCart()
@@ -258,7 +236,7 @@ public class Controller {
                         case GET_ORDERS -> {
                             ArrayList<Order> orders = response.getField(ArrayList.class, "orders");
                             currentUser.setOrders(orders);
-                            wait.await();
+                            Platform.runLater(() -> starter.getShopMenu().getOrderPane().setOrders(orders));
                         }
                         case MAKE_ORDER -> {
                             Order order = response.getField(Order.class, "order");
@@ -283,7 +261,7 @@ public class Controller {
                         }
                     }
                 }
-            } catch (IOException | ClassNotFoundException | BrokenBarrierException | InterruptedException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
         }
